@@ -2,12 +2,25 @@
 class Lisp
   Env = Struct.new(:parent, :bindings) do
     def add(key, value)
-      bindings[key] = value
+      bindings[key] = value unless add_rec(key, value)
       self
+    end
+
+    def add_rec(key, value)
+      if bindings[key]
+        bindings[key] = value
+        true
+      else
+        if parent.nil?
+          false
+        else
+          parent.add_rec(key, value)
+        end
+      end
     end
   end
 
-  Closure = Struct.new(:arg, :code)
+  Closure = Struct.new(:arg, :code, :env)
 
   def initialize(code)
     @exp = parse(code)
@@ -33,7 +46,7 @@ class Lisp
       when /\d+/
         token.to_i
       when '_'
-        -rand(10000)
+        0
       else
         token.to_sym
       end
@@ -56,17 +69,16 @@ class Lisp
   end
 
   def eval(exp, env)
-    p exp
-    pp env
     case exp
     in [:code, a]
       eval(a, env)
     in [:code, a, *b]
       eval([:code, *b], eval(a, env)[1])
     in [:'=', a, b]
-      [nil, env.add(a, eval(b, env)[0])]
+      b_value = eval(b, env)[0]
+      [nil, env.add(a, b_value)]
     in [:'->', a, b]
-      [Closure.new(a, b), env]
+      [Closure.new(a, b, env), env]
     in [:if, a, b]
       if eval(a, env)[0]
         eval(b, env)
@@ -89,7 +101,10 @@ class Lisp
         args = [second, *rest].map { |t| eval(t, env)[0] }
         [f.call(args), env]
       in Closure
-        new_env = Env.new(env, { f.arg => eval(second, env)[0] })
+        new_env = Env.new(
+          f.env,
+          { f.arg => eval(second, env)[0] }
+        )
         eval(f.code, new_env)
       end
     in Symbol
@@ -106,7 +121,6 @@ class Lisp
     end
     v = find_value_rec(name, env)
     if v.nil?
-      puts "----------------"
       pp env
       raise "`#{name}` not found"
     end
@@ -116,14 +130,17 @@ end
 
 Lisp.new(<<~LISP).run
 (code
-  (= inc (-> x (code
-    (= i 10)
+  (= increment (-> x (code
+    (= n 100)
     (-> y (code
-      (= i (+ i 1))
-      i
+      (= n (+ n 10))
+      n
     ))
   )))
-  (p ((inc _) _))
+  (= inc (increment 0))
+  (p (inc 0))
+  (p (inc 0))
+  (p (inc 0))
 )
 LISP
 
