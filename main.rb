@@ -20,7 +20,7 @@ class Lisp
     end
   end
 
-  Closure = Struct.new(:arg, :code, :env)
+  Closure = Struct.new(:args, :code, :env)
 
   def initialize(code)
     @exp = parse(code)
@@ -70,15 +70,19 @@ class Lisp
 
   def eval(exp, env)
     case exp
-    in [:code, a]
+    in Symbol
+      [find_value(exp, env), env]
+    in Integer
+      [exp, env]
+    in [:code | :~, a]
       eval(a, env)
-    in [:code, a, *b]
+    in [:code | :~, a, *b]
       eval([:code, *b], eval(a, env)[1])
     in [:'=', a, b]
       b_value = eval(b, env)[0]
       [nil, env.add(a, b_value)]
-    in [:'->', a, b]
-      [Closure.new(a, b, env), env]
+    in [:'->', [*vars], code]
+      [Closure.new(vars, code, env), env]
     in [:if, a, b]
       if eval(a, env)[0]
         eval(b, env)
@@ -89,7 +93,7 @@ class Lisp
       else
         eval(c, env)
       end
-    in [first, second, *rest]
+    in [first, *rest]
       f = case first
           when Array
             eval(first, env)[0]
@@ -98,19 +102,15 @@ class Lisp
           end
       case f
       in Proc
-        args = [second, *rest].map { |t| eval(t, env)[0] }
+        args = rest.map { |t| eval(t, env)[0] }
         [f.call(args), env]
       in Closure
         new_env = Env.new(
           f.env,
-          { f.arg => eval(second, env)[0] }
+          f.args.zip(rest.map { |r| eval(r, env)[0] }).to_h
         )
         eval(f.code, new_env)
       end
-    in Symbol
-      [find_value(exp, env), env]
-    in Integer
-      [exp, env]
     end
   end
 
@@ -129,18 +129,18 @@ class Lisp
 end
 
 Lisp.new(<<~LISP).run
-(code
-  (= increment (-> x (code
-    (= n 100)
-    (-> y (code
-      (= n (+ n 10))
+(~
+  (= increment (-> (x) (~
+    (= n x)
+    (-> (y) (~
+      (= n (+ n y))
       n
     ))
   )))
-  (= inc (increment 0))
-  (p (inc 0))
-  (p (inc 0))
-  (p (inc 0))
+  (= inc (increment 100))
+  (p (inc 10))
+  (p (inc 10))
+  (p (inc 10))
 )
 LISP
 
