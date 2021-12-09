@@ -51,19 +51,17 @@ class Lisp
         token.to_sym
       end
     end
-    parsed = [tokens.shift]
-    until tokens.empty?
-      parsed <<
-        case s = tokens.shift
-        when :')'
-          poped = [:')']
-          until poped in [:'(', *rest, :')']
-            poped = [parsed.pop, *poped]
-          end
-          poped[1..-2]
-        else
-          s
-        end
+    parsed = tokens[1..].reduce([tokens.first]) do |parsed, token|
+      case token
+      when :')'
+        # findパターンは最初のマッチを取り出してしまうためreverse
+        parsed.reverse => [*after_reversed_rest, :'(', *before_reversed_rest]
+        before_rest = before_reversed_rest.reverse
+        after_rest = after_reversed_rest.reverse
+        [*before_rest, after_rest]
+      else
+        [*parsed, token]
+      end
     end
     parsed.first
   end
@@ -101,10 +99,10 @@ class Lisp
             find_value(first, env)
           end
       case f
-      in Proc
+      in Proc # 組み込み
         args = rest.map { |t| eval(t, env)[0] }
         [f.call(args), env]
-      in Closure
+      in Closure # ユーザー定義
         new_env = Env.new(
           f.env,
           f.args.zip(rest.map { |r| eval(r, env)[0] }).to_h
@@ -132,15 +130,15 @@ Lisp.new(<<~LISP).run
 (~
   (= increment (-> (x) (~
     (= n x)
-    (-> (y) (~
-      (= n (+ n y))
+    (-> (y yy) (~
+      (= n (+ n (+ y yy)))
       n
     ))
   )))
   (= inc (increment 100))
-  (p (inc 10))
-  (p (inc 10))
-  (p (inc 10))
+  (p (inc 10 10))
+  (p (inc 10 10))
+  (p (inc 10 10))
 )
 LISP
 
