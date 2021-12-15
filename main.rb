@@ -29,6 +29,7 @@ class Lisp
       :- => ->(args){ args[0] - args[1] },
       :* => ->(args){ args[0] * args[1] },
       :'==' => ->(args){ args[0] == args[1] },
+      :'!=' => ->(args){ args[0] == args[1] },
       :p => ->(args){ p args[0] }
     })
   end
@@ -68,6 +69,8 @@ class Lisp
 
   def eval(exp, env)
     case exp
+    in []
+      [nil, env]
     in Symbol
       [find_value(exp, env), env]
     in Integer
@@ -84,6 +87,8 @@ class Lisp
     in [:if, a, b]
       if eval(a, env)[0]
         eval(b, env)
+      else
+        [nil, env]
       end
     in [:if, a, b, c]
       if eval(a, env)[0]
@@ -91,6 +96,13 @@ class Lisp
       else
         eval(c, env)
       end
+    in [:callcc, closure_node]
+      closure = eval(closure_node, env)[0]
+      # TODO: リターンアドレスのようなものをevalの引数に加えないとダメかも。
+      # もしくは現在の全体のexpをどうにかして入手するか。
+      # そのためには再帰的にevalするんじゃなくてスタックマシンっぽくしないといけないかも
+      cnt = nil
+      eval([closure, cnt], env)
     in [first, *rest]
       f = case first
           when Array
@@ -127,18 +139,17 @@ class Lisp
 end
 
 Lisp.new(<<~LISP).run
-(~
-  (= increment (-> (x) (~
-    (= n x)
-    (-> (y yy) (~
-      (= n (+ n (+ y yy)))
-      n
-    ))
-  )))
-  (= inc (increment 100))
-  (p (inc 10 10))
-  (p (inc 10 10))
-  (p (inc 10 10))
-)
+(p (+ (+ 1 2) (+ 3 4)))
 LISP
+# (~
+#   (= f (-> () (~
+#     (p 1)
+#     (= c (callcc (-> (cnt) cnt)))
+#     (p 2)
+#     c
+#   )))
+#   (p 0)
+#   (= cc (f ()))
+#   (if (!= cc 100) (cc 100))
+# )
 
