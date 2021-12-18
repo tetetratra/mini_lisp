@@ -94,39 +94,32 @@ class Lisp
       else
         eval(c, env)
       end
-    in [:callcc, closure_node]
-      closure = eval(closure_node, env)[0]
-      # TODO: リターンアドレスのようなものをevalの引数に加えないとダメかも。
-      # もしくは現在の全体のexpをどうにかして入手するか。
-      # そのためには再帰的にevalするんじゃなくてスタックマシンっぽくしないといけないかも
-      cnt = nil
-      eval([closure, cnt], env)
-    in [first, *rest]
+    in [:callcc, closure_node] # TODO: 未実装
+    # eval(exp, env, call_stack) にする？
+    # Callcc構造体に保存する
+    in [Callcc => cc, *rest] # TODO: 未実装
+    in [Proc => pr, *rest] # 組み込み関数
+      args = rest.map { |t| eval(t, env)[0] }
+      [pr.call(args), env]
+    in [Closure => cl, *rest] # ユーザー定義のクロージャ
+      new_env = Env.new(
+        cl.env,
+        cl.args.zip(rest.map { |r| eval(r, env)[0] }).to_h
+      )
+      eval(cl.code, new_env)
+    in [first, *rest] # 関数呼び出しはこの形
+      # (p (f))は関数を呼び出ている。(p f)は関数を扱っているだけ
       f = case first
           when Array
             eval(first, env)[0]
           else
             find_value(first, env)
           end
-      case f
-      in Proc # 組み込み
-        args = rest.map { |t| eval(t, env)[0] }
-        [f.call(args), env]
-      in Closure # ユーザー定義
-        new_env = Env.new(
-          f.env,
-          f.args.zip(rest.map { |r| eval(r, env)[0] }).to_h
-        )
-        eval(f.code, new_env)
-      end
+      eval([f, *rest], env)
     end
   end
 
   def find_value(name, env)
-    def find_value_rec(name, env)
-      return nil if env.nil?
-      env.bindings[name] || find_value_rec(name, env.parent)
-    end
     v = find_value_rec(name, env)
     if v.nil?
       pp env
@@ -134,20 +127,30 @@ class Lisp
     end
     v
   end
+
+  def find_value_rec(name, env)
+    return nil if env.nil?
+    env.bindings[name] || find_value_rec(name, env.parent)
+  end
 end
 
 Lisp.new(<<~LISP).run
-(p (+ (+ 1 2) (+ 3 4)))
+(~
+  (= c 0)
+  (= f3 (-> () (~
+    (p 300)
+  )))
+  (= f2 (-> () (~
+    (p 200)
+    (= c (callcc (-> cnt cnt)))
+    (f3)
+  )))
+  (= f1 (-> () (~
+    (p 100)
+    (f2)
+  )))
+  (p (f1)) # 100 200 300 300
+  (c) # 300 300
+)
 LISP
-# (~
-#   (= f (-> () (~
-#     (p 1)
-#     (= c (callcc (-> (cnt) cnt)))
-#     (p 2)
-#     c
-#   )))
-#   (p 0)
-#   (= cc (f ()))
-#   (if (!= cc 100) (cc 100))
-# )
 
