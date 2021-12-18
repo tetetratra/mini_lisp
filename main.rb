@@ -41,13 +41,11 @@ class Lisp
   private
 
   def parse(str)
-    regex = /\(|\)|[\w\d\-+=*%_@^~<>?#$&|!]+/
-    tokens = str.gsub(/\s+/, ' ').scan(regex).map do |token|
+    regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+/
+    tokens = str.gsub(/#.*/, '').gsub(/\s+/, ' ').scan(regex).map do |token|
       case token
-      when /\d+/
+      when /^\d+$/
         token.to_i
-      when '_'
-        0
       else
         token.to_sym
       end
