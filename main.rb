@@ -22,6 +22,8 @@ class Lisp
 
   Closure = Struct.new(:args, :code, :env)
 
+  Code = Struct.new(:exp, :line)
+
   def initialize(code)
     @exp = parse(code)
     @env = Env.new(nil, {
@@ -73,48 +75,57 @@ class Lisp
       [find_value(exp, env), env]
     in Integer
       [exp, env]
-    in [:code | :~, a]
-      eval(a, env)
-    in [:code | :~, a, *b]
-      eval([:code, *b], eval(a, env)[1])
+    in [:code | :~, *rest]
+      eval([Code.new(rest, 0), *rest], env)
     in [:'=', a, b]
       b_value = eval(b, env)[0]
       [nil, env.add(a, b_value)]
     in [:'->', [*vars], code]
       [Closure.new(vars, code, env), env]
-    in [:if, a, b]
-      if eval(a, env)[0]
-        eval(b, env)
-      else
-        [nil, env]
+    in [:if, *rest]
+      case rest
+      in [a,b]
+        if eval(a, env)[0]
+          eval(b, env)
+        else
+          [nil, env]
+        end
+      in [a,b,c]
+        if eval(a, env)[0]
+          eval(b, env)
+        else
+          eval(c, env)
+        end
       end
-    in [:if, a, b, c]
-      if eval(a, env)[0]
-        eval(b, env)
-      else
-        eval(c, env)
+    in [Code => code, *args]
+      # pp exp
+      case args
+      in [current]
+        eval(current, env)
+      in [current, *rest]
+        eval([Code.new(rest, code.line + 1), *rest], eval(current, env)[1])
       end
-    in [:callcc, closure_node] # TODO: 未実装
-    # eval(exp, env, call_stack) にする？
-    # Callcc構造体に保存する
-    in [Callcc => cc, *rest] # TODO: 未実装
-    in [Proc => pr, *rest] # 組み込み関数
+    # in [:callcc, closure_node]
+      # TODO: 未実装
+      # eval(exp, env, call_stack) にする？
+      # Callcc構造体に保存する
+      # code組み込み関数でevalするときに、
+    # in [Callcc => cc, *rest]
+      # TODO: 未実装
+    in [Proc => pr, *rest] # (組み込みの)関数の呼び出し
       args = rest.map { |t| eval(t, env)[0] }
       [pr.call(args), env]
-    in [Closure => cl, *rest] # ユーザー定義のクロージャ
+    in [Closure => cl, *rest] # (ユーザー定義の)クロージャの呼び出し
       new_env = Env.new(
         cl.env,
         cl.args.zip(rest.map { |r| eval(r, env)[0] }).to_h
       )
       eval(cl.code, new_env)
-    in [first, *rest] # 関数呼び出しはこの形
-      # (p (f))は関数を呼び出ている。(p f)は関数を扱っているだけ
-      f = case first
-          when Array
-            eval(first, env)[0]
-          else
-            find_value(first, env)
-          end
+    in [Array => first, *rest]
+      f = eval(first, env)[0]
+      eval([f, *rest], env)
+    in [Symbol => first, *rest] # (p (f))は関数を呼び出ている。(p f)は関数を扱っているだけ
+      f = find_value(first, env)
       eval([f, *rest], env)
     end
   end
@@ -142,7 +153,7 @@ Lisp.new(<<~LISP).run
   )))
   (= f2 (-> () (~
     (p 200)
-    (= c (callcc (-> cnt cnt)))
+    # (= c (callcc (-> cnt cnt)))
     (f3)
   )))
   (= f1 (-> () (~
@@ -150,7 +161,7 @@ Lisp.new(<<~LISP).run
     (f2)
   )))
   (p (f1)) # 100 200 300 300
-  (c) # 300 300
+  (p c) # 300 300
 )
 LISP
 
