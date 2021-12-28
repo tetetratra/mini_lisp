@@ -52,17 +52,19 @@ class Lisp
         token.to_sym
       end
     end
-    parsed = tokens[1..].reduce([tokens.first]) do |parsed, token|
-      case token
-      when :')'
-        # findパターンは最初のマッチを取り出してしまうためreverse
-        parsed.reverse => [*after_reversed_rest, :'(', *before_reversed_rest]
-        before_rest = before_reversed_rest.reverse
-        after_rest = after_reversed_rest.reverse
-        [*before_rest, after_rest]
-      else
-        [*parsed, token]
-      end
+    parsed = [tokens.shift]
+    until tokens.empty?
+      parsed <<
+        case s = tokens.shift
+        when :')'
+          poped = [:')']
+          until poped in [:'(', *rest, :')']
+            poped = [parsed.pop, *poped]
+          end
+          poped[1..-2]
+        else
+          s
+        end
     end
     parsed.first
   end
@@ -146,22 +148,5 @@ class Lisp
 end
 
 Lisp.new(<<~LISP).run
-(~
-  (= c 0)
-  (= f3 (-> () (~
-    (p 300)
-  )))
-  (= f2 (-> () (~
-    (p 200)
-    # (= c (callcc (-> cnt cnt)))
-    (f3)
-  )))
-  (= f1 (-> () (~
-    (p 100)
-    (f2)
-  )))
-  (p (f1)) # 100 200 300 300
-  (p c) # 300 300
-)
 LISP
 
