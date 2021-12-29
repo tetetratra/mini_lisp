@@ -1,54 +1,12 @@
+class Proc
+  alias __inspect__ inspect
+  def inspect
+    'proc' + __inspect__[/:\d+ /][/\d+/]
+  end
+end
 
 class Lisp
-    Fn = Struct.new(:args, :codes)
-
-    Closure = Struct.new(:fn, :env)
-
-    Env = Struct.new(:parent, :bindings) do
-      def add(hash)
-        Env[parent, { **bindings, **hash }]
-      end
-
-      def find(name)
-        find_r = ->(name, env) do
-          env.bindings[name] || find_r.(name, env.parent) if env
-        end
-        find_r.(name, self)
-      end
-    end
-
-    Frame = Struct.new(:fn, :line, :env) do
-      def current_code
-        fn.codes[line]
-      end
-
-      def next
-        Frame[fn, line + 1, env]
-      end
-
-      def last_line?
-        fn.codes.size - 1 <= line
-      end
-
-      def update_env(next_env)
-        Frame[fn, line, next_env]
-      end
-    end
-
   class << self
-    def run(src)
-      parsed = parse("(-> () #{src})")
-      @function_table = construct_function_table(parsed)
-      root_fn = @function_table.first
-      root_env = Env[nil, {
-        :+ => ->(args, env){ args.inject(:+) },
-        :- => ->(args, env){ args.first - args[1..].inject(:+) },
-        :p => ->(args, env){ p args }
-      }]
-      root_frame = Frame[root_fn, 0, root_env]
-      eval([root_frame], nil)
-    end
-
     def parse(str)
       regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+/
       tokens = str.gsub(/#.*/, '').gsub(/\s+/, ' ').scan(regex).map do |token|
@@ -73,84 +31,99 @@ class Lisp
             s
           end
       end
-      parsed
+      parsed.first
     end
 
-    def construct_function_table(exp)
+    def run(src)
+      parsed = parse(src)
+      bytecode = compile(parsed)
+      pp bytecode
+      exec(bytecode)
+    end
+
+    def compile(exp)
       case exp
-      in [:'->', [*args], *codes]
-        [
-          Fn.new(args, codes),
-          *codes.map { |c| construct_function_table(c) }.flatten
-        ]
-      in [*codes]
-        codes.map { |c| construct_function_table(c) }.flatten
-      else
-        []
-      end
+      in Integer => i
+        [ "#{i}" ]
+      in Symbol => s
+        [ "get@#{s}" ]
+      in Array
+        case exp.first
+        in :~
+          exp[1..].map { |e| compile(e) }
+        # in :+
+        #   [*exp[1..].map { |e| compile(e) }, "+@#{exp.size - 1}"]
+        in :'='
+          raise unless Symbol === exp[1]
+          [*compile(exp[2]), "=@#{exp[1]}"]
+        in :'->'
+          args = exp[1]
+          raise unless args.all? { |a| Symbol === a }
+          codes = exp[2..]
+          [ "closure@#{args.inspect}@#{codes.inspect}" ] # 環境とコードをもったオブジェクトを作成する命令
+        in Symbol => method
+          args = exp[1..]
+          [*args.map { |a| compile(a) }, "send@#{method}@#{args.size}"]
+        end
+      end.flatten(1)
     end
 
-    def eval(cs, prev_value) # 再帰NG
-      frame = cs.last
-      code = frame.current_code
-      env = frame.env
+    # StackFrame = Struct.new(:variables) do
+    #   def add(**hash)
+    #     StackFrame[{ **variables, **hash }]
+    #   end
+    # end
 
-      # prev_value は前回のframeの計算の結果
-      # calced_value は今回の計算の結果
-      calced_value, next_env, new_frame = calc(code, env, prev_value)
+    def exec(bytecode)
+      call_stack = [
+        {
+          :'+' => ->(args){ args.inject(:+) },
+        }
+      ]
+      vm_stack = []
+      sp = 0
+      while code = bytecode[sp]
+        case code
+        when /^\d/
+          vm_stack << code.to_i
+        when /^=@(\w+)/
+          name = $1.to_sym
+          value = vm_stack.last
+          call_stack = [*call_stack[..-2], { **call_stack[-1], name => value }]
+        when /^get@(\w+)/
+          name = $1.to_sym
+          value = call_stack.reverse.find { |variables| variables[name] }[name]
+          vm_stack << value
+        when /^closure@(.+?)@(.+?)/
+          args = $1
+          codes = $2
+          vm_stack << Closure
 
-      next_cs = if new_frame
-                  [*cs[..-2], frame.next.update_env(next_env), new_frame]
-                elsif frame.last_line?
-                  cs[..-2]
-                else
-                  [*cs[..-2], frame.next.update_env(next_env)]
-                end
-      eval(next_cs, calced_value) unless next_cs.empty?
-    end
-
-    def calc(code, env, prev_value = nil) # 再帰OK
-      puts '-------------'
-      pp code
-      case code
-      in Integer
-        [code, env]
-      in Symbol => sym
-        [env.find(sym), env]
-      in [:'=', name, value]
-        calced_value = calc(value, env)[0]
-        print 'calced_value =>'
-        pp calced_value
-        [name, env.add({ name => calced_value })]
-      in [:'->', [*args], *codes]
-        fn = @function_table.find { |f| f.args == args && f.codes == codes }
-        closure = Closure[fn, env]
-        [closure, env]
-      in [Symbol => name, *args]
-        value = env.find(name)
-        calc([value, *args], env)
-      in [Proc => pro, *args]
-        calced_args = args.map { |a| calc(a, env)[0] }
-        [pro.(calced_args, env), env]
-      in [Closure => closure, *args]
-        calced_args = args.map { |a| calc(a, env)[0] }
-        new_frame = Frame[
-          closure.fn,
-          0,
-          closure.env.add(closure.fn.args.zip(calced_args).to_h)
-        ]
-        # 関数呼び出しなのでcsにpush
-        [prev_value, env, new_frame]
-      in nil
-        [nil, nil]
+        when /^send@(.+?)@(\d+)/
+          method_name = $1.to_sym
+          argc = $2.to_i
+          method = call_stack.reverse.find { |frame| frame[method_name] }[method_name]
+          args = argc.times.map { vm_stack.pop }
+          vm_stack << method.(args)
+        else
+          raise
+        end
+        sp += 1
+        p code
+        p call_stack
+        p vm_stack
+        puts
       end
     end
   end
 end
 
 Lisp.run(<<~LISP)
-  (= g (-> (a) b))
-  (= r (g 150))
-  (p r)
+(~
+  (= a (+ (+ 15 25) 30))
+  (+ a a a)
+  (= f (-> (x) (+ a x)))
+  (f 10)
+)
 LISP
 
