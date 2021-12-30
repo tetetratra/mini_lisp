@@ -36,63 +36,81 @@ class Lisp
 
     def run(src)
       parsed = parse(src)
-      bytecode = compile(parsed)
-      pp bytecode
-      exec(bytecode)
+      pp parsed
+      code_table = make_code_table(parsed)
+      puts '~~~~~~~~~'
+      pp code_table
+      exec(code_table)
     end
 
-    def compile(exp)
-      case exp
-      in Integer => i
-        [ "#{i}" ]
-      in Symbol => s
-        [ "get@#{s}" ]
-      in Array
-        case exp.first
-        in :~
-          exp[1..].map { |e| compile(e) }
-        # in :+
-        #   [*exp[1..].map { |e| compile(e) }, "+@#{exp.size - 1}"]
-        in :'='
-          raise unless Symbol === exp[1]
-          [*compile(exp[2]), "=@#{exp[1]}"]
-        in :'->'
-          args = exp[1]
-          raise unless args.all? { |a| Symbol === a }
-          codes = exp[2..]
-          [ "closure@#{args.inspect}@#{codes.inspect}" ] # 環境とコードをもったオブジェクトを作成する命令
-        in Symbol => method
-          args = exp[1..]
-          [*args.map { |a| compile(a) }, "send@#{method}@#{args.size}"]
-        end
-      end.flatten(1)
+    def make_code_table(s_exp)
+      code_table = {}
+      compile = -> (exp) do
+        pp exp
+        case exp
+        in Integer => i
+          [ "#{i}" ]
+        in Symbol => s
+          [ "get@#{s}" ]
+        in Array
+          case exp.first
+          in :~
+            exp[1..].map { |e| compile.(e) }
+          in :'='
+            raise unless Symbol === exp[1]
+            [*compile.(exp[2]), "=@#{exp[1]}"]
+          in :'->'
+            args = exp[1]
+            raise unless args.all? { |a| Symbol === a }
+            code = exp[2]
+            n = code_table.size + 1
+            code_table[n] = args.flat_map{|a| "=:@#{a}" } + compile.(code)
+            [ "closure@#{n}" ] # 環境とコードをもったオブジェクトを作成する命令
+          in Symbol => method
+            args = exp[1..]
+            [*args.map { |a| compile.(a) }, "send@#{method}@#{args.size}"]
+          end
+        end.flatten(1)
+      end
+      root = compile.(s_exp)
+      code_table[0] = root
+      code_table.sort_by { |k,v| k }.to_h
     end
 
-    # StackFrame = Struct.new(:variables) do
-    #   def add(**hash)
-    #     StackFrame[{ **variables, **hash }]
-    #   end
-    # end
+    StackFrame = Struct.new(:env, :sp, :code)
 
-    def exec(bytecode)
+    def exec(code_table)
+      puts '~~~~~~~~~'
       call_stack = [
-        {
-          :'+' => ->(args){ args.inject(:+) },
-        }
+        StackFrame[
+          {
+            :'+' => ->(args){ args.inject(:+) }
+          },
+          0,
+          code_table[0]
+        ]
       ]
       vm_stack = []
-      sp = 0
-      while code = bytecode[sp]
-        case code
-        when /^\d/
-          vm_stack << code.to_i
+      until call_stack.empty?
+        stack_frame = call_stack[-1]
+        line = stack_frame.code[stack_frame.sp]
+
+        p call_stack
+        p vm_stack
+        p line
+        puts '------------'
+        sleep 1
+
+        case line
+        when /^(\d+)/
+          vm_stack << $1.to_i
         when /^=@(\w+)/
           name = $1.to_sym
           value = vm_stack.last
-          call_stack = [*call_stack[..-2], { **call_stack[-1], name => value }]
+          call_stack[-1].env[name] = value
         when /^get@(\w+)/
-          name = $1.to_sym
-          value = call_stack.reverse.find { |variables| variables[name] }[name]
+          var_name = $1.to_sym
+          value = call_stack.map(&:env).reverse.find { |env| env[var_name] }[var_name]
           vm_stack << value
         when /^closure@(.+?)@(.+?)/
           args = $1
@@ -102,27 +120,33 @@ class Lisp
         when /^send@(.+?)@(\d+)/
           method_name = $1.to_sym
           argc = $2.to_i
-          method = call_stack.reverse.find { |frame| frame[method_name] }[method_name]
+          method = call_stack.map(&:env).reverse.find { |env| env[method_name] }[method_name]
           args = argc.times.map { vm_stack.pop }
           vm_stack << method.(args)
         else
           raise
         end
-        sp += 1
-        p code
-        p call_stack
-        p vm_stack
-        puts
+        stack_frame.sp += 1
+
+        if stack_frame.sp == stack_frame.code.size
+          call_stack.pop
+        end
       end
+
+      p call_stack
+      p vm_stack
+      p line
+      puts '!!!!!!!!!!!!'
     end
   end
 end
 
 Lisp.run(<<~LISP)
 (~
-  (= a (+ (+ 15 25) 30))
-  (+ a a a)
-  (= f (-> (x) (+ a x)))
+  (= a 100)
+  (= f (-> (x)
+    x
+  ))
   (f 10)
 )
 LISP
