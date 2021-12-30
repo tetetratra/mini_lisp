@@ -1,4 +1,4 @@
-$debug = false
+$debug = ARGV.include?('-d')
 
 class Proc
   alias __inspect__ inspect
@@ -59,13 +59,13 @@ class Lisp
             exp[1..].map { |e| compile.(e) }
           in :'='
             raise unless Symbol === exp[1]
-            [*compile.(exp[2]), "=@#{exp[1]}"]
+            [*compile.(exp[2]), "set@#{exp[1]}"]
           in :'->'
             args = exp[1]
             raise unless args.all? { |a| Symbol === a }
             code = exp[2]
-            code_table << args.flat_map{|a| "arg@#{a}" } + compile.(code)
-            [ "closure@#{code_table.size - 1}" ] # 環境とコードをもったオブジェクトを作成する命令
+            code_table << compile.(code)
+            [ "closure@#{code_table.size - 1}@#{args.join(',')}" ] # 環境とコードをもったオブジェクトを作成する命令
           in Symbol | Array
             method = exp.first
             args = exp[1..]
@@ -78,45 +78,45 @@ class Lisp
       code_table.map.with_index { |a,i| [i, a] }.to_h
     end
 
-    StackFrame = Struct.new(:vm_stack, :env, :parent_env_sf, :sp, :code_num) do
+    StackFrame = Struct.new(
+      :vm_stack, # 可変
+      :env, # 可変
+      :env_parent, # 不変
+      :code_table_num, # 不変
+      :line_num # 可変
+    ) do
       def finish?(code_table)
-        sp == code_table[code_num].size
+        line_num == code_table[code_table_num].size
       end
 
       def find_env(name)
-        env[name] || parent_env_sf&.find_env(name)
+        env[name] || env_parent&.find_env(name)
       end
 
       def list_env
-        [ *parent_env_sf&.list_env, { **env } ]
+        [ *env_parent&.list_env, { **env } ]
       end
 
       def update_env(name, value)
-        unless update_env_rec(name, value)
-          env[name] = value
-        end
-        self
-      end
-
-      private
-
-      def update_env_rec(name, value)
-        if env[name]
-          env[name] = value
-          true
-        else
-          if parent_env_sf
-            parent_env_sf.update_env(name, value)
+        current_stack_frame = self
+        loop do
+          if current_stack_frame.env[name]
+            current_stack_frame.env[name] = value
+            break
           else
-            false
+            current_stack_frame = current_stack_frame.env_parent
+            if current_stack_frame.nil?
+              env[name] = value # 親を辿っても無かったら自身に登録
+              break
+            end
           end
         end
       end
     end
 
-    Closure = Struct.new(:function_num, :stack_frame) do
+    Closure = Struct.new(:function_num, :args, :stack_frame) do
       def inspect
-        "Closure#{function_num}"
+        "Closure#{function_num}(#{args.join(',')})"
       end
     end
 
@@ -126,26 +126,24 @@ class Lisp
           [], # vm_stack
           {
             :'+' => ->(args){ args.inject(:+) },
+            :'-' => ->(args){ args[0] - args[1..].inject(:+) },
             :'p' => ->(args){ p args.first }
           }, # env
-          nil, # parent_env_sf
-          0, # sp = 0
-          0 # root
+          nil, # env_parent
+          0, # root
+          0 # line_num = 0
         ]
       ]
 
       loop do
         stack_frame = call_stack[-1]
-        code = code_table[stack_frame.code_num]
-        line = code[stack_frame.sp]
+        code = code_table[stack_frame.code_table_num]
+        line = code[stack_frame.line_num]
 
         if call_stack[-1].finish?(code_table)
           finished_stack_frame = call_stack.pop
           if call_stack.empty?
-            if $debug
-              puts 'finish!'
-              p finished_stack_frame.vm_stack
-            end
+            p finished_stack_frame.vm_stack if $debug
             break
           else
             call_stack[-1].vm_stack << finished_stack_frame.vm_stack.last
@@ -156,28 +154,27 @@ class Lisp
         if $debug
           p stack_frame.vm_stack
           p stack_frame.list_env
-          puts "code_table[#{stack_frame.code_num}][#{stack_frame.sp}] = #{code}[#{stack_frame.sp}] = #{line.inspect}"
+          puts "code_table[#{stack_frame.code_table_num}][#{stack_frame.line_num}] = #{code}[#{stack_frame.line_num}] = #{line.inspect}"
           puts '------------'
-          sleep 0.1
         end
 
         case line
         when /^(\d+)/
           stack_frame.vm_stack << $1.to_i
-        when /^=@(\w+)/
+        when /^set@(\w+)/
           name = $1.to_sym
           value = stack_frame.vm_stack.last
-
           stack_frame.update_env(name, value)
-
         when /^get@(.+)/
           var_name = $1.to_sym
           value = stack_frame.find_env(var_name)
           stack_frame.vm_stack << value
-        when /^closure@(\d+)/
+        when /^closure@(\d+)@([\w,]*)/
           function_num = $1.to_i
+          args = $2.split(',').map(&:to_sym)
           stack_frame.vm_stack << Closure[
             function_num,
+            args,
             stack_frame
           ]
         when /^send@(\d+)/
@@ -189,21 +186,17 @@ class Lisp
             stack_frame.vm_stack << pro.(args)
           in Closure => closure
             call_stack << StackFrame[
-              args.reverse, # vm_stack
-              {}, # env
-              closure.stack_frame, # parent_env_sf
-              0,
-              closure.function_num
+              [], # vm_stack
+              closure.args.zip(args).to_h, # env
+              closure.stack_frame, # env_parent
+              closure.function_num, # code_table_num
+              0 # line_num
             ]
           end
-        when /^arg@(\w+)/
-          name = $1.to_sym
-          value = stack_frame.vm_stack.pop
-          stack_frame.env[name] = value
         else
           raise "no match line: #{line.inspect}"
         end
-        stack_frame.sp += 1
+        stack_frame.line_num += 1
       end
     end
   end
@@ -212,13 +205,14 @@ end
 Lisp.run(<<~LISP)
 (~
   (= a 10)
-  (= f (-> ()
-    (= a (+ a 1))
-  ))
-  (f)
-  (f)
-  (f)
-  (f)
+  (= f (-> (a b) (~
+    (= x (+ a b))
+    (-> () (= x (+ x 1)))
+  )))
+  (= inc (f 10 20))
+  (p (inc))
+  (p (inc))
+  (p (inc))
   (p a)
 )
 LISP
