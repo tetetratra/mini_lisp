@@ -109,6 +109,130 @@ class Lisp
       code_table.map.with_index { |a,i| [i, a] }.to_h
     end
 
+    VM = Struct.new(:stack_frame_num, :stack_frames) do
+      def change_stack_frame_num(n)
+        VM[
+          n,
+          stack_frames
+        ].freeze
+      end
+
+      def current_stack_frame
+        stack_frames[stack_frame_num]
+      end
+
+      def current_stack_frame_call_parent
+        stack_frames[current_stack_frame.call_parent_num]
+      end
+
+      def current_stack_frame_env_parent
+        stack_frames[current_stack_frame.env_parent_num]
+      end
+
+      def current_stack_frame_finish?(code_table)
+        current_stack_frame.line_num == code_table[current_stack_frame.code_table_num].size
+      end
+
+      def current_stack_frame_find_env(name)
+        current_stack_frame.find_env(name, stack_frames)
+      end
+
+      def current_stack_frame_list_env
+        current_stack_frame.list_env(stack_frames)
+      end
+
+      def current_stack_frame_update_env(name, value)
+        stack_frame_target_num = stack_frame_num
+        if current_stack_frame.env[name].nil?
+          loop do
+            stack_frame_target_num = stack_frames[stack_frame_target_num].env_parent_num
+            if stack_frame_target_num.nil?
+              stack_frame_target_num = stack_frame_num
+              break
+            end
+            break if stack_frames[stack_frame_target_num].env[name]
+          end
+        end
+
+        VM[
+          stack_frame_num,
+          {
+            **stack_frames.except(stack_frame_target_num),
+            stack_frame_target_num => StackFrame[
+              stack_frames[stack_frame_target_num].stack,
+              { **stack_frames[stack_frame_target_num].env, name => value },
+              stack_frames[stack_frame_target_num].line_num,
+              stack_frames[stack_frame_target_num].call_parent_num,
+              stack_frames[stack_frame_target_num].env_parent_num,
+              stack_frames[stack_frame_target_num].code_table_num
+            ]
+          }
+        ].freeze
+      end
+
+      def current_stack_frame_stack_push(value)
+        VM[
+          stack_frame_num,
+          {
+            **stack_frames.except(stack_frame_num),
+            stack_frame_num => StackFrame[
+              [*current_stack_frame.stack, value],
+              current_stack_frame.env,
+              current_stack_frame.line_num,
+              current_stack_frame.call_parent_num,
+              current_stack_frame.env_parent_num,
+              current_stack_frame.code_table_num
+            ]
+          }
+        ].freeze
+      end
+
+      def current_stack_frame_stack_pop
+        vm = VM[
+          stack_frame_num,
+          {
+            **stack_frames.except(stack_frame_num),
+            stack_frame_num => StackFrame[
+              current_stack_frame.stack[..-2],
+              current_stack_frame.env,
+              current_stack_frame.line_num,
+              current_stack_frame.call_parent_num,
+              current_stack_frame.env_parent_num,
+              current_stack_frame.code_table_num
+            ]
+          }
+        ].freeze
+        [vm, current_stack_frame.stack.last]
+      end
+
+      def current_stack_frame_line_num_add(n)
+        VM[
+          stack_frame_num,
+          {
+            **stack_frames.except(stack_frame_num),
+            stack_frame_num => StackFrame[
+              current_stack_frame.stack,
+              current_stack_frame.env,
+              current_stack_frame.line_num + n,
+              current_stack_frame.call_parent_num,
+              current_stack_frame.env_parent_num,
+              current_stack_frame.code_table_num
+            ]
+          }
+        ].freeze
+      end
+
+      def insert_stack_frame(n, stack_frame)
+        VM[
+          stack_frame_num,
+          {
+            **stack_frames,
+            n => stack_frame
+          }
+        ].freeze
+      end
+    end
+
     StackFrame = Struct.new(
       :stack, # 可変
       :env, # 可変
@@ -117,17 +241,8 @@ class Lisp
       :env_parent_num, # 不変
       :code_table_num # 不変
     ) do
-
-      def stack_parent(call_stack)
-        call_stack[call_parent_num]
-      end
-
       def env_parent(call_stack)
         call_stack[env_parent_num]
-      end
-
-      def finish?(code_table)
-        line_num == code_table[code_table_num].size
       end
 
       def find_env(name, call_stack)
@@ -136,22 +251,6 @@ class Lisp
 
       def list_env(call_stack)
         [ *env_parent(call_stack)&.list_env(call_stack), { **env } ]
-      end
-
-      def update_env(name, value, call_stack)
-        current_stack_frame = self
-        loop do
-          if current_stack_frame.env[name]
-            current_stack_frame.env[name] = value
-            break
-          else
-            current_stack_frame = current_stack_frame.env_parent(call_stack)
-            if current_stack_frame.nil?
-              env[name] = value # 親を辿っても無かったら自身に登録
-              break
-            end
-          end
-        end
       end
     end
 
@@ -162,117 +261,128 @@ class Lisp
     end
 
     def exec(code_table)
-      call_stack = {
-        0 => StackFrame[
-          [], # stack
-          {
-            :true => true,
-            :false => false,
-            :'+' => ->(args) { args.inject(:+) },
-            :'-' => ->(args) { args[0] - args[1..].inject(:+) },
-            :'==' => ->(args) { args[0] == args[1] },
-            :'!=' => ->(args) { args[0] != args[1] },
-            :'!' => ->(args) { !args[0] },
-            :'p' => ->(args) { p args.first }
-          }, # env
-          0, # line_num
-          nil, # call_parent_num
-          nil, # env_parent_num
-          0 # code_table_num
-        ]
-      }
+      init_vm = VM[
+        0,
+        {
+          0 => StackFrame[
+            [], # stack
+            {
+              :true => true,
+              :false => false,
+              :'+' => ->(args) { args.inject(:+) },
+              :'-' => ->(args) { args[0] - args[1..].inject(:+) },
+              :'==' => ->(args) { args[0] == args[1] },
+              :'!=' => ->(args) { args[0] != args[1] },
+              :'!' => ->(args) { !args[0] },
+              :'p' => ->(args) { p args.first }
+            }, # env
+            0, # line_num
+            nil, # call_parent_num
+            nil, # env_parent_num
+            0 # code_table_num
+          ]
+        }
+      ].freeze
 
-      stack_frame_num = 0
+      (0..).reduce(init_vm) do |vm, _|
+        code = code_table[vm.current_stack_frame.code_table_num]
+        line = code[vm.current_stack_frame.line_num]
 
-      loop do
-        stack_frame = call_stack[stack_frame_num]
-        code = code_table[stack_frame.code_table_num]
-        line = code[stack_frame.line_num]
-
-        if stack_frame.finish?(code_table)
-          if stack_frame.call_parent_num.nil?
-            p stack_frame.stack if $debug
+        if vm.current_stack_frame_finish?(code_table)
+          if vm.current_stack_frame.call_parent_num.nil?
+            p vm.current_stack_frame.stack if $debug
             break
           else
-            stack_frame_num = stack_frame.call_parent_num
-            call_stack[stack_frame_num].stack << stack_frame.stack.last
-            redo
+            new_vm = vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
+                       .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
+            next new_vm
           end
         end
 
         if $debug
-          p stack_frame.stack
-          p stack_frame.list_env(call_stack)
-          puts "code_table[#{stack_frame.code_table_num}][#{stack_frame.line_num}] = #{code}[#{stack_frame.line_num}] = #{line.inspect}"
+          p vm.current_stack_frame.stack
+          p vm.current_stack_frame.list_env(vm.stack_frames)
+          puts "code_table[#{vm.current_stack_frame.code_table_num}][#{vm.current_stack_frame.line_num}] = #{code}[#{vm.current_stack_frame.line_num}] = #{line.inspect}"
           puts '------------'
         end
 
         case line
         when /^(\d+)/
-          stack_frame.stack << $1.to_i
+          vm.current_stack_frame_stack_push($1.to_i)
         when /^set@(.+)/
           name = $1.to_sym
-          value = stack_frame.stack.last
-          stack_frame.update_env(name, value, call_stack)
+          value = vm.current_stack_frame.stack.last
+          vm.current_stack_frame_update_env(name, value)
         when /^get@(.+)/
           var_name = $1.to_sym
-          value = stack_frame.find_env(var_name, call_stack)
+          value = vm.current_stack_frame_find_env(var_name)
           raise "variable `#{var_name}` is not defined" if value.nil?
-          stack_frame.stack << value
+          vm.current_stack_frame_stack_push(value)
         when /^closure@(\d+)@([\w,]*)/
           function_num = $1.to_i
           args = $2.split(',').map(&:to_sym)
-          stack_frame.stack << Closure[
+          closure = Closure[
             function_num,
             args,
-            stack_frame_num
+            vm.stack_frame_num
           ]
+          vm.current_stack_frame_stack_push(closure)
         when /^send@(\d+)/
           argc = $1.to_i
-          method = stack_frame.stack.pop
-          args = argc.times.map { stack_frame.stack.pop }.reverse
+          new_vm, method = vm.current_stack_frame_stack_pop
+          new_vm2, args = argc.times.reduce([new_vm, []]) { |(memo_vm, args), _|
+            vm.current_stack_frame.stack.pop
+            next_vm, poped = memo_vm.current_stack_frame_stack_pop
+            [next_vm, [poped, *args]]
+          }
           case method
           in Proc => pro
-            stack_frame.stack << pro.(args)
+            new_vm2.current_stack_frame_stack_push(pro.(args))
           in Closure => closure
             new_stack_frame = StackFrame[
               [], # stack
               closure.args.zip(args).to_h, # env
               0, # line_num
-              stack_frame_num, # call_parent_num
+              new_vm2.stack_frame_num, # call_parent_num
               closure.stack_frame_num, # env_parent_num
               closure.function_num # code_table_num
             ]
-            new_stack_frame_num = call_stack.size
-            call_stack[new_stack_frame_num] = new_stack_frame
-            stack_frame_num = new_stack_frame_num
+            new_stack_frame_num = new_vm2.stack_frames.size
+            next new_vm2
+                   .current_stack_frame_line_num_add(1)
+                   .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+                   .change_stack_frame_num(new_stack_frame_num)
           end
         when /^jumpif@(\d+)/
-          cond = stack_frame.stack.last
-          add = $1.to_i
+          cond = new_vm2.current_stack_frame.stack.last
+          line_relative = $1.to_i
           if cond
-            stack_frame.line_num += add
+            new_vm2.current_stack_frame_line_num_add(line_relative)
+          else
+            new_vm2
           end
         when /^jump@(-?\d+)/
-          add = $1.to_i
-          stack_frame.line_num += add
+          line_relative = $1.to_i
+          new_vm2.current_stack_frame_line_num_add(line_relative)
         else
           raise "command `#{line.inspect}` is not found"
-        end
-        stack_frame.line_num += 1
+        end => new_vm3
+        new_vm3.current_stack_frame_line_num_add(1)
       end
     end
   end
 end
 
 Lisp.run(<<~LISP)
-(= a 123)
-(p a)
-(= f (-> () (= a (+ a 1))))
-(f)
-(f)
-(f)
-(p a)
+(= f (-> (x)
+  (= init x)
+  (-> () (= init (+ init 1)))
+))
+(= inc (f 10))
+(p (inc))
+(inc)
+(inc)
+(p (inc))
 LISP
 
 =begin
