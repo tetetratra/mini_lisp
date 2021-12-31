@@ -57,6 +57,20 @@ class Lisp
           case exp.first
           in :~
             exp[1..].map { |e| compile.(e) }
+          in :if
+            if_exp = exp[1]
+            then_exp = exp[2]
+            else_exp = exp[3]
+            if_compiled = compile.(if_exp)
+            then_compiled = compile.(then_exp)
+            else_compiled = compile.(else_exp)
+            [
+              *if_compiled,
+              "jumpif@#{else_compiled.size + 1}",
+              *else_compiled,
+              "jump@#{then_compiled.size}",
+              *then_compiled,
+            ]
           in :'='
             raise unless Symbol === exp[1]
             [*compile.(exp[2]), "set@#{exp[1]}"]
@@ -210,6 +224,15 @@ class Lisp
             call_stack[new_stack_frame_num] = new_stack_frame
             stack_frame_num = new_stack_frame_num
           end
+        when /^jumpif@(\d+)/
+          cond = stack_frame.vm_stack.last
+          add = $1.to_i
+          if cond
+            stack_frame.line_num += add
+          end
+        when /^jump@(\d+)/
+          add = $1.to_i
+          stack_frame.line_num += add
         else
           raise "no match line: #{line.inspect}"
         end
