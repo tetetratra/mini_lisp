@@ -33,14 +33,14 @@ class Lisp
             s
           end
       end
-      parsed.first
+      parsed
     end
 
     def run(src)
       puts src if $debug
       parsed = parse(src)
       pp parsed if $debug
-      code_table = make_code_table(parsed)
+      code_table = make_code_table([:~, *parsed])
       pp code_table if $debug
       exec(code_table)
     end
@@ -77,8 +77,8 @@ class Lisp
           in :'->'
             args = exp[1]
             raise unless args.all? { |a| Symbol === a }
-            code = exp[2]
-            code_table << compile.(code)
+            codes = exp[2..]
+            code_table << codes.flat_map { |code| compile.(code) }
             [ "closure@#{code_table.size - 1}@#{args.join(',')}" ] # 環境とコードをもったオブジェクトを作成する命令
           in Symbol | Array
             method = exp.first
@@ -248,8 +248,13 @@ class Lisp
 end
 
 Lisp.run(<<~LISP)
-(~
-  (p (if (! 1) 2 3))
-)
+  (= f (-> (x)
+    (= zero 0)
+    (if (== x zero)
+      zero
+      (+ x (f (- x 1)))
+    )
+  ))
+  (p (f 10))
 LISP
 
