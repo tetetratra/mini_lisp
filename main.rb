@@ -110,16 +110,16 @@ class Lisp
     end
 
     StackFrame = Struct.new(
-      :vm_stack, # 可変
+      :stack, # 可変
       :env, # 可変
       :line_num, # 可変
-      :vm_stack_parent_num, # 不変
+      :call_parent_num, # 不変
       :env_parent_num, # 不変
       :code_table_num # 不変
     ) do
 
-      def vm_stack_parent(call_stack)
-        call_stack[vm_stack_parent_num]
+      def stack_parent(call_stack)
+        call_stack[call_parent_num]
       end
 
       def env_parent(call_stack)
@@ -164,7 +164,7 @@ class Lisp
     def exec(code_table)
       call_stack = {
         0 => StackFrame[
-          [], # vm_stack
+          [], # stack
           {
             :true => true,
             :false => false,
@@ -176,7 +176,7 @@ class Lisp
             :'p' => ->(args) { p args.first }
           }, # env
           0, # line_num
-          nil, # vm_stack_parent_num
+          nil, # call_parent_num
           nil, # env_parent_num
           0 # code_table_num
         ]
@@ -190,18 +190,18 @@ class Lisp
         line = code[stack_frame.line_num]
 
         if stack_frame.finish?(code_table)
-          if stack_frame.vm_stack_parent_num.nil?
-            p stack_frame.vm_stack if $debug
+          if stack_frame.call_parent_num.nil?
+            p stack_frame.stack if $debug
             break
           else
-            stack_frame_num = stack_frame.vm_stack_parent_num
-            call_stack[stack_frame_num].vm_stack << stack_frame.vm_stack.last
+            stack_frame_num = stack_frame.call_parent_num
+            call_stack[stack_frame_num].stack << stack_frame.stack.last
             redo
           end
         end
 
         if $debug
-          p stack_frame.vm_stack
+          p stack_frame.stack
           p stack_frame.list_env(call_stack)
           puts "code_table[#{stack_frame.code_table_num}][#{stack_frame.line_num}] = #{code}[#{stack_frame.line_num}] = #{line.inspect}"
           puts '------------'
@@ -209,37 +209,37 @@ class Lisp
 
         case line
         when /^(\d+)/
-          stack_frame.vm_stack << $1.to_i
+          stack_frame.stack << $1.to_i
         when /^set@(.+)/
           name = $1.to_sym
-          value = stack_frame.vm_stack.last
+          value = stack_frame.stack.last
           stack_frame.update_env(name, value, call_stack)
         when /^get@(.+)/
           var_name = $1.to_sym
           value = stack_frame.find_env(var_name, call_stack)
           raise "variable `#{var_name}` is not defined" if value.nil?
-          stack_frame.vm_stack << value
+          stack_frame.stack << value
         when /^closure@(\d+)@([\w,]*)/
           function_num = $1.to_i
           args = $2.split(',').map(&:to_sym)
-          stack_frame.vm_stack << Closure[
+          stack_frame.stack << Closure[
             function_num,
             args,
             stack_frame_num
           ]
         when /^send@(\d+)/
           argc = $1.to_i
-          method = stack_frame.vm_stack.pop
-          args = argc.times.map { stack_frame.vm_stack.pop }.reverse
+          method = stack_frame.stack.pop
+          args = argc.times.map { stack_frame.stack.pop }.reverse
           case method
           in Proc => pro
-            stack_frame.vm_stack << pro.(args)
+            stack_frame.stack << pro.(args)
           in Closure => closure
             new_stack_frame = StackFrame[
-              [], # vm_stack
+              [], # stack
               closure.args.zip(args).to_h, # env
               0, # line_num
-              stack_frame_num, # vm_stack_parent_num
+              stack_frame_num, # call_parent_num
               closure.stack_frame_num, # env_parent_num
               closure.function_num # code_table_num
             ]
@@ -248,7 +248,7 @@ class Lisp
             stack_frame_num = new_stack_frame_num
           end
         when /^jumpif@(\d+)/
-          cond = stack_frame.vm_stack.last
+          cond = stack_frame.stack.last
           add = $1.to_i
           if cond
             stack_frame.line_num += add
@@ -266,6 +266,42 @@ class Lisp
 end
 
 Lisp.run(<<~LISP)
-(p 123)
+(= a 123)
+(p a)
+(= f (-> () (= a (+ a 1))))
+(f)
+(f)
+(f)
+(p a)
 LISP
 
+=begin
+require 'continuation'
+
+def b(re)
+  if rand(2).zero?
+    re.()
+  else
+    p :b
+  end
+end
+
+def a(re)
+  if rand(2).zero?
+    re.()
+  else
+    p :a
+    b(re)
+  end
+end
+
+callcc { |raise_exception|
+  if rand(2).zero?
+    raise_exception.()
+  else
+    p :root
+    a(raise_exception)
+  end
+}
+p :fin
+=end
