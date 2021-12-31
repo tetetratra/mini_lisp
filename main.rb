@@ -94,11 +94,11 @@ class Lisp
 
     StackFrame = Struct.new(
       :vm_stack, # 可変
-      :vm_stack_parent_num, # 不変
       :env, # 可変
+      :line_num, # 可変
+      :vm_stack_parent_num, # 不変
       :env_parent_num, # 不変
-      :code_table_num, # 不変
-      :line_num # 可変
+      :code_table_num # 不変
     ) do
 
       def vm_stack_parent(call_stack)
@@ -148,15 +148,20 @@ class Lisp
       call_stack = {
         0 => StackFrame[
           [], # vm_stack
-          nil, # vm_stack_parent_num
           {
-            :'+' => ->(args){ args.inject(:+) },
-            :'-' => ->(args){ args[0] - args[1..].inject(:+) },
-            :'p' => ->(args){ p args.first }
+            :true => true,
+            :false => false,
+            :'+' => ->(args) { args.inject(:+) },
+            :'-' => ->(args) { args[0] - args[1..].inject(:+) },
+            :'==' => ->(args) { args[0] == args[1] },
+            :'!=' => ->(args) { args[0] != args[1] },
+            :'!' => ->(args) { !args[0] },
+            :'p' => ->(args) { p args.first }
           }, # env
+          0, # line_num
+          nil, # vm_stack_parent_num
           nil, # env_parent_num
-          0, # root
-          0 # line_num = 0
+          0 # code_table_num
         ]
       }
 
@@ -188,7 +193,7 @@ class Lisp
         case line
         when /^(\d+)/
           stack_frame.vm_stack << $1.to_i
-        when /^set@(\w+)/
+        when /^set@(.+)/
           name = $1.to_sym
           value = stack_frame.vm_stack.last
           stack_frame.update_env(name, value, call_stack)
@@ -214,11 +219,11 @@ class Lisp
           in Closure => closure
             new_stack_frame = StackFrame[
               [], # vm_stack
-              stack_frame_num, # vm_stack_parent_num
               closure.args.zip(args).to_h, # env
+              0, # line_num
+              stack_frame_num, # vm_stack_parent_num
               closure.stack_frame_num, # env_parent_num
-              closure.function_num, # code_table_num
-              0 # line_num
+              closure.function_num # code_table_num
             ]
             new_stack_frame_num = call_stack.size
             call_stack[new_stack_frame_num] = new_stack_frame
@@ -244,13 +249,7 @@ end
 
 Lisp.run(<<~LISP)
 (~
-  (= f (-> (a b) (~
-    (= x (+ a b))
-    (-> () (= x (+ x 1)))
-  )))
-  (= inc (f 10 20))
-  (p (inc))
-  (p (inc))
+  (p (if (! 1) 2 3))
 )
 LISP
 
