@@ -71,6 +71,19 @@ class Lisp
               "jump@#{then_compiled.size}",
               *then_compiled,
             ]
+          in :while
+            cond = exp[1]
+            statements = exp[2..]
+            compiled_cond = compile.(cond)
+            compiled_statements = statements.flat_map { |s| compile.(s) }
+            [
+              *compiled_cond,
+              'get@!',
+              'send@1',
+              "jumpif@#{compiled_statements.size + 1}",
+              *compiled_statements,
+              "jump@#{-(4 + compiled_statements.size + compiled_cond.size)}"
+            ]
           in :'='
             raise unless Symbol === exp[1]
             [*compile.(exp[2]), "set@#{exp[1]}"]
@@ -235,7 +248,7 @@ class Lisp
           if cond
             stack_frame.line_num += add
           end
-        when /^jump@(\d+)/
+        when /^jump@(-?\d+)/
           add = $1.to_i
           stack_frame.line_num += add
         else
@@ -249,12 +262,14 @@ end
 
 Lisp.run(<<~LISP)
   (= f (-> (x)
-    (= zero 0)
-    (if (== x zero)
-      zero
-      (+ x (f (- x 1)))
+    (= sum 0)
+    (while (!= x 0)
+      (= sum (+ sum x))
+      (p sum)
+      (= x (- x 1))
     )
+    sum
   ))
-  (p (f 10))
+  (f 10)
 LISP
 
