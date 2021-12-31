@@ -33,6 +33,10 @@ class Lisp
             s
           end
       end
+      unless ([:'(', :')'] & parsed.flatten).empty?
+        puts "Parse error:\n`#{str.chomp}` is not valid code"
+        exit
+      end
       parsed
     end
 
@@ -85,11 +89,11 @@ class Lisp
               "jump@#{-(4 + compiled_statements.size + compiled_cond.size)}"
             ]
           in :'='
-            raise unless Symbol === exp[1]
+            raise "variable `#{exp[1]}` in `#{exp}` is not symbol" unless Symbol === exp[1]
             [*compile.(exp[2]), "set@#{exp[1]}"]
           in :'->'
             args = exp[1]
-            raise unless args.all? { |a| Symbol === a }
+            raise "argument `#{args.find { Symbol != _1 }}` in `#{exp}` must be symbol" unless args.all? { |a| Symbol === a }
             codes = exp[2..]
             code_table << codes.flat_map { |code| compile.(code) }
             [ "closure@#{code_table.size - 1}@#{args.join(',')}" ] # 環境とコードをもったオブジェクトを作成する命令
@@ -213,6 +217,7 @@ class Lisp
         when /^get@(.+)/
           var_name = $1.to_sym
           value = stack_frame.find_env(var_name, call_stack)
+          raise "variable `#{var_name}` is not defined" if value.nil?
           stack_frame.vm_stack << value
         when /^closure@(\d+)@([\w,]*)/
           function_num = $1.to_i
@@ -252,7 +257,7 @@ class Lisp
           add = $1.to_i
           stack_frame.line_num += add
         else
-          raise "no match line: #{line.inspect}"
+          raise "command `#{line.inspect}` is not found"
         end
         stack_frame.line_num += 1
       end
@@ -261,15 +266,6 @@ class Lisp
 end
 
 Lisp.run(<<~LISP)
-  (= f (-> (x)
-    (= sum 0)
-    (while (!= x 0)
-      (= sum (+ sum x))
-      (p sum)
-      (= x (- x 1))
-    )
-    sum
-  ))
-  (f 10)
+(p 123)
 LISP
 
