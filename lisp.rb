@@ -26,15 +26,14 @@ end
 Lisp.run(<<~LISP)
 (= x 10)
 (p x)
-(= cnt 0)
+(= cnt 'tmp')
 (callcc (-> (continuation)
   (= cnt continuation)
 ))
 (= x (- x 1))
 (p x)
-(sleep 1)
 (if (== x 0)
-  0
+  (puts 'finish')
   (cnt)
 )
 LISP

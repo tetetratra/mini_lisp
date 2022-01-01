@@ -4,8 +4,10 @@ class Lisp
       code_table = [ nil ] # rootのために一時的にnilを置いておく
       compile_r = -> (exp) do
         case exp
+        in String => str
+          [ "str@#{str}" ]
         in Integer => i
-          [ "#{i}" ]
+          [ "int@#{i}" ]
         in Symbol => s
           [ "get@#{s}" ]
         in Array

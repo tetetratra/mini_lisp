@@ -14,6 +14,7 @@ class Lisp
               :'!=' => ->(args) { args[0] != args[1] },
               :'!' => ->(args) { !args[0] },
               :p => ->(args) { p args.first },
+              :puts => ->(args) { puts args.first; args.first },
               :sleep => ->(args) { sleep(args.first); args.first }
             }, # env
             0, # line_num
@@ -46,8 +47,10 @@ class Lisp
         end
 
         case line
-        when /^(\d+)/
+        when /^int@(\d+)/
           vm.current_stack_frame_stack_push($1.to_i)
+        when /^str@(.*)/
+          vm.current_stack_frame_stack_push($1)
         when /^set@(.+)/
           name = $1.to_sym
           value = vm.current_stack_frame.stack.last
