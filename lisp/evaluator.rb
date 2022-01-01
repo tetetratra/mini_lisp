@@ -33,9 +33,8 @@ class Lisp
             p vm.current_stack_frame.stack if $debug
             break
           else
-            new_vm = vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
-                       .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
-            next new_vm
+            next vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
+                   .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
           end
         end
 
@@ -69,45 +68,44 @@ class Lisp
           vm.current_stack_frame_stack_push(closure)
         when /^send@(\d+)/
           argc = $1.to_i
-          new_vm, method = vm.current_stack_frame_stack_pop
-          new_vm2, args = argc.times.reduce([new_vm, []]) { |(memo_vm, args), _|
-            vm.current_stack_frame.stack.pop
+          method_poped_vm, method = vm.current_stack_frame_stack_pop
+          new_vm, args = argc.times.reduce([method_poped_vm, []]) { |(memo_vm, args), _|
             next_vm, poped = memo_vm.current_stack_frame_stack_pop
             [next_vm, [poped, *args]]
           }
           case method
           in Proc => pro
-            new_vm2.current_stack_frame_stack_push(pro.(args))
+            new_vm.current_stack_frame_stack_push(pro.(args))
           in Closure => closure
             new_stack_frame = StackFrame[
               [], # stack
               closure.args.zip(args).to_h, # env
               0, # line_num
-              new_vm2.stack_frame_num, # call_parent_num
+              new_vm.stack_frame_num, # call_parent_num
               closure.stack_frame_num, # env_parent_num
               closure.function_num # code_table_num
             ]
-            new_stack_frame_num = new_vm2.stack_frames.size
-            next new_vm2
+            new_stack_frame_num = new_vm.stack_frames.size
+            next new_vm
                    .current_stack_frame_line_num_add(1)
                    .insert_stack_frame(new_stack_frame_num, new_stack_frame)
                    .change_stack_frame_num(new_stack_frame_num)
           end
         when /^jumpif@(\d+)/
-          cond = new_vm2.current_stack_frame.stack.last
+          cond = new_vm.current_stack_frame.stack.last
           line_relative = $1.to_i
           if cond
-            new_vm2.current_stack_frame_line_num_add(line_relative)
+            new_vm.current_stack_frame_line_num_add(line_relative)
           else
-            new_vm2
+            new_vm
           end
         when /^jump@(-?\d+)/
           line_relative = $1.to_i
-          new_vm2.current_stack_frame_line_num_add(line_relative)
+          new_vm.current_stack_frame_line_num_add(line_relative)
         else
           raise "command `#{line.inspect}` is not found"
-        end => new_vm3
-        new_vm3.current_stack_frame_line_num_add(1)
+        end => next_vm
+        next_vm.current_stack_frame_line_num_add(1)
       end
     end
   end

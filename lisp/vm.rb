@@ -124,12 +124,12 @@ class Lisp
   end
 
   StackFrame = Struct.new(
-    :stack, # 可変
-    :env, # 可変
-    :line_num, # 可変
-    :call_parent_num, # 不変
-    :env_parent_num, # 不変
-    :code_table_num # 不変
+    :stack,
+    :env,
+    :line_num,
+    :call_parent_num,
+    :env_parent_num,
+    :code_table_num
   ) do
     def env_parent(call_stack)
       call_stack[env_parent_num]
