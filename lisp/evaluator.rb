@@ -103,7 +103,7 @@ class Lisp
                   continuation_stack_frame_num,
                   StackFrame[
                     continuation_stack_frame.stack, # stack
-                    vm.current_stack_frame.env, # env
+                    vm.stack_frames[continuation_stack_frame_num].env, # env
                     continuation_stack_frame.line_num, # line_num
                     continuation_stack_frame.call_parent_num, # call_parent_num
                     continuation_stack_frame.env_parent_num, # env_parent_num

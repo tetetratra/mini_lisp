@@ -36,7 +36,26 @@ Lisp.run(<<~LISP)
   (puts 'finish')
   (cnt)
 )
+
+(puts '-----------')
+
+(= f (-> (raise)
+  (puts 'before_raise')
+  (raise)
+  (puts 'after_raise')
+))
+
+(puts 'before_callcc')
+(callcc (-> (raise)
+  (puts 'before_f')
+  (f raise)
+  (puts 'after_f')
+))
+(puts 'after_callcc')
 LISP
+
+=begin
+=end
 
 =begin
 require 'continuation'
