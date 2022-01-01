@@ -24,15 +24,19 @@ class Lisp
 end
 
 Lisp.run(<<~LISP)
-(= f (-> (x)
-  (= init x)
-  (-> () (= init (+ init 1)))
+(= x 10)
+(p x)
+(= cnt 0)
+(callcc (-> (continuation)
+  (= cnt continuation)
 ))
-(= inc (f 10))
-(p (inc))
-(inc)
-(inc)
-(p (inc))
+(= x (- x 1))
+(p x)
+(sleep 1)
+(if (== x 0)
+  0
+  (cnt)
+)
 LISP
 
 =begin

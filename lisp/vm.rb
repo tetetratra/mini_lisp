@@ -149,4 +149,10 @@ class Lisp
       "Closure#{function_num}(#{args.join(',')})"
     end
   end
+
+  Continuation = Struct.new(:vm) do
+    def inspect
+      "Continuation"
+    end
+  end
 end
