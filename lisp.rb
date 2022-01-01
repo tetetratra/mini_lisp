@@ -1,4 +1,4 @@
-$debug = ARGV.include?('-d')
+$debug = !!ARGV.delete('-d')
 
 require_relative 'lisp/parser.rb'
 require_relative 'lisp/compiler.rb'
@@ -23,43 +23,6 @@ class Lisp
   end
 end
 
-Lisp.run(<<~LISP)
-(= x 10)
-(= cnt 'tmp')
-(callcc (-> (continuation)
-  (= cnt continuation)
-))
-(= x (+ x -1))
-(p x)
-(if (== x 0)
-  (puts 'finish')
-  (cnt)
-)
-
-(puts '-----------')
-(= f (-> (raise)
-  (puts 'before raise')
-  (raise)
-  (puts 'after raise')
-))
-(puts 'before callcc')
-(callcc (-> (raise)
-  (puts 'before f')
-  (f raise)
-  (puts 'after f')
-))
-(puts 'after callcc')
-
-(puts '-----------')
-(= cnt 'tmp')
-(= r (callcc (-> (continuation)
-  (= cnt continuation)
-  10
-)))
-(p r)
-(if (== 100 r)
-  (puts 'fin')
-  (cnt 100)
-)
-LISP
+src = File.open(ARGV.first, &:read)
+Lisp.run(src)
 
