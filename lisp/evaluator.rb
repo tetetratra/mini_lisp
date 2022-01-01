@@ -47,7 +47,7 @@ class Lisp
         end
 
         case line
-        when /^int@(\d+)/
+        when /^int@(-?\d+)/
           vm.current_stack_frame_stack_push($1.to_i)
         when /^str@(.*)/
           vm.current_stack_frame_stack_push($1)
