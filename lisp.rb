@@ -25,7 +25,6 @@ end
 
 Lisp.run(<<~LISP)
 (= x 10)
-(p x)
 (= cnt 'tmp')
 (callcc (-> (continuation)
   (= cnt continuation)
@@ -38,13 +37,11 @@ Lisp.run(<<~LISP)
 )
 
 (puts '-----------')
-
 (= f (-> (raise)
   (puts 'before_raise')
   (raise)
   (puts 'after_raise')
 ))
-
 (puts 'before_callcc')
 (callcc (-> (raise)
   (puts 'before_f')
@@ -52,38 +49,17 @@ Lisp.run(<<~LISP)
   (puts 'after_f')
 ))
 (puts 'after_callcc')
+
+(puts '-----------')
+(= cnt 'tmp')
+(= r (callcc (-> (continuation)
+  (= cnt continuation)
+  10
+)))
+(p r)
+(if (== 100 r)
+  (puts 'fin')
+  (cnt 100)
+)
 LISP
 
-=begin
-=end
-
-=begin
-require 'continuation'
-
-def b(re)
-  if rand(2).zero?
-    re.()
-  else
-    p :b
-  end
-end
-
-def a(re)
-  if rand(2).zero?
-    re.()
-  else
-    p :a
-    b(re)
-  end
-end
-
-callcc { |raise_exception|
-  if rand(2).zero?
-    raise_exception.()
-  else
-    p :root
-    a(raise_exception)
-  end
-}
-p :fin
-=end
