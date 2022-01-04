@@ -28,6 +28,7 @@ class Lisp
 
         (0..).reduce(init_vm) do |vm, _|
           if vm.current_stack_frame_finish?(code_table)
+            print_debug_log(vm, code_table) if $debug
             if vm.current_stack_frame.call_parent_num.nil?
               break
             else
@@ -68,7 +69,7 @@ class Lisp
             vm.current_stack_frame_stack_push(closure)
               .current_stack_frame_line_num_add(1)
           when /^send@(\d+)/
-            exec_send(vm, code_table, argc: $1.to_i)
+            exec_send(vm, code_table, $1.to_i)
           when /^jumpif@(\d+)/
             cond = vm.current_stack_frame.stack.last
             line_relative = $1.to_i
@@ -86,7 +87,7 @@ class Lisp
 
       private
 
-      def exec_send(vm, code_table, argc:)
+      def exec_send(vm, code_table, argc)
         method_poped_vm, method = vm.current_stack_frame_stack_pop
         new_vm, args = argc.times.reduce([method_poped_vm, []]) { |(memo_vm, args), _|
           next_vm, poped = memo_vm.current_stack_frame_stack_pop

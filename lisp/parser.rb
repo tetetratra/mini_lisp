@@ -2,7 +2,7 @@ class Lisp
   class Parser
     def self.parse(str)
       regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|\".+?\"|\'.+?\'/
-      tokens = str.gsub(/#.*/, '').gsub(/\s+/, ' ').scan(regex).map do |token|
+      tokens = str.gsub(/[#;].*/, '').gsub(/\s+/, ' ').scan(regex).map do |token|
         case token
         when /^-?\d+$/
           token.to_i
