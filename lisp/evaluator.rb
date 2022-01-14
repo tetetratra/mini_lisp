@@ -56,6 +56,7 @@ class Lisp
             var_name = $1.to_sym
             value = vm.current_stack_frame_find_env(var_name)
             raise "variable `#{var_name}` is not defined" if value.nil?
+
             vm.current_stack_frame_stack_push(value)
               .current_stack_frame_line_num_add(1)
           when /^closure@(\d+)@([\w,]*)/
@@ -89,26 +90,26 @@ class Lisp
 
       def exec_send(vm, code_table, argc)
         method_poped_vm, method = vm.current_stack_frame_stack_pop
-        new_vm, args = argc.times.reduce([method_poped_vm, []]) { |(memo_vm, args), _|
+        args_poped_vm, args = argc.times.reduce([method_poped_vm, []]) { |(memo_vm, args), _|
           next_vm, poped = memo_vm.current_stack_frame_stack_pop
           [next_vm, [poped, *args]]
         }
         case method
         in :callcc
-          continuation = Continuation[new_vm.current_stack_frame_line_num_add(1)]
+          continuation = Continuation[args_poped_vm.current_stack_frame_line_num_add(1)]
           closure = args.first
           new_stack_frame = StackFrame[
             [], # stack
             { closure.args.first => continuation }, # env
             0, # line_num
-            new_vm.stack_frame_num, # call_parent_num
+            args_poped_vm.stack_frame_num, # call_parent_num
             closure.stack_frame_num, # env_parent_num
             closure.function_num # code_table_num
           ].freeze
-          new_stack_frame_num = new_vm.stack_frames.size
-          new_vm.current_stack_frame_line_num_add(1)
-                .insert_stack_frame(new_stack_frame_num, new_stack_frame)
-                .change_stack_frame_num(new_stack_frame_num)
+          new_stack_frame_num = args_poped_vm.stack_frames.size
+          args_poped_vm.current_stack_frame_line_num_add(1)
+            .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+            .change_stack_frame_num(new_stack_frame_num)
         in Continuation => continuation
           VM[ # continuation.vmの環境を現在の環境に差し替えている
             continuation.vm.stack_frame_num,
@@ -117,7 +118,7 @@ class Lisp
                 continuation_stack_frame_num,
                 StackFrame[
                   [*continuation_stack_frame.stack, args.first], # stack
-                  new_vm.stack_frames[continuation_stack_frame_num].env, # env
+                  args_poped_vm.stack_frames[continuation_stack_frame_num].env, # env
                   continuation_stack_frame.line_num, # line_num
                   continuation_stack_frame.call_parent_num, # call_parent_num
                   continuation_stack_frame.env_parent_num, # env_parent_num
@@ -127,21 +128,21 @@ class Lisp
             }
           ].freeze
         in Proc => pro
-          new_vm.current_stack_frame_stack_push(pro.(args))
+          args_poped_vm.current_stack_frame_stack_push(pro.(args))
             .current_stack_frame_line_num_add(1)
         in Closure => closure
           new_stack_frame = StackFrame[
             [], # stack
             closure.args.zip(args).to_h, # env
             0, # line_num
-            new_vm.stack_frame_num, # call_parent_num
+            args_poped_vm.stack_frame_num, # call_parent_num
             closure.stack_frame_num, # env_parent_num
             closure.function_num # code_table_num
           ].freeze
-          new_stack_frame_num = new_vm.stack_frames.size
-          new_vm.current_stack_frame_line_num_add(1)
-                .insert_stack_frame(new_stack_frame_num, new_stack_frame)
-                .change_stack_frame_num(new_stack_frame_num)
+          new_stack_frame_num = args_poped_vm.stack_frames.size
+          args_poped_vm.current_stack_frame_line_num_add(1)
+            .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+            .change_stack_frame_num(new_stack_frame_num)
         end
       end
 

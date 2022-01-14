@@ -43,17 +43,23 @@ class Lisp
             ]
           in :'='
             raise "variable `#{exp[1]}` in `#{exp}` is not symbol" unless Symbol === exp[1]
+
             [*compile_r.(exp[2]), "set@#{exp[1]}"]
           in :'->'
             args = exp[1]
-            raise "argument `#{args.find { Symbol != _1 }}` in `#{exp}` must be symbol" unless args.all? { |a| Symbol === a }
+            raise "argument `#{args.find { Symbol != _1 }}` in `#{exp}` must be symbol" unless args.all? { Symbol === _1 }
+
             codes = exp[2..]
             code_table << codes.flat_map { |code| compile_r.(code) }
-            [ "closure@#{code_table.size - 1}@#{args.join(',')}" ] # 環境とコードをもったオブジェクトを作成する命令
+            [ "closure@#{code_table.size - 1}@#{args.join(',')}" ]
           in Symbol | Array
             method = exp.first
             args = exp[1..]
-            [*args.map { |a| compile_r.(a) }, compile_r.(method), "send@#{args.size}"]
+            [
+              *args.map { |a| compile_r.(a) },
+              compile_r.(method),
+              "send@#{args.size}"
+            ]
           end
         end.flatten(1)
       end
