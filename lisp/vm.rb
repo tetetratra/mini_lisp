@@ -1,4 +1,4 @@
-class Lisp
+module Lisp
   VM = Struct.new(:stack_frame_num, :stack_frames) do
     def change_stack_frame_num(n)
       VM[

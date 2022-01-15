@@ -1,4 +1,4 @@
-class Lisp
+module Lisp
   class Evaluator
     class << self
       def exec(code_table)

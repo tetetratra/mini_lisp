@@ -1,4 +1,4 @@
-class Lisp
+module Lisp
   def self.run(src)
     puts src if $debug
     parsed = Parser.parse(src)
