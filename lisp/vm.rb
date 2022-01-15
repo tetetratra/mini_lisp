@@ -144,6 +144,16 @@ class Lisp
     end
   end
 
+  Function = Struct.new(:proc) do
+    def inspect
+      "Function#{proc.inspect.match(/rb:(\d+)/)[1]}"
+    end
+
+    def call(args, vm)
+      Struct.new(:args, :vm).new(args, vm).instance_eval(&proc)
+    end
+  end
+
   Closure = Struct.new(:function_num, :args, :stack_frame_num) do
     def inspect
       "Closure#{function_num}(#{args.join(',')})"

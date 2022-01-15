@@ -8,14 +8,14 @@ class Lisp
             0 => StackFrame[
               [], # stack
               {
-                :'+' => ->(args) { args.inject(:+) },
-                :'-' => ->(args) { args[0] - args[1..].inject(:+) },
-                :'==' => ->(args) { args[0] == args[1] },
-                :'!=' => ->(args) { args[0] != args[1] },
-                :'!' => ->(args) { !args[0] },
-                :p => ->(args) { p args.first },
-                :puts => ->(args) { puts args.first; args.first },
-                :sleep => ->(args) { sleep(args.first); args.first }
+                :'+' => Fn { args.inject(:+) },
+                :'-' => Fn { args[0] - args[1..].inject(:+) },
+                :'==' => Fn { args[0] == args[1] },
+                :'!=' => Fn { args[0] != args[1] },
+                :'!' => Fn { !args[0] },
+                :p => Fn { p args.first },
+                :puts => Fn { puts args.first; args.first },
+                :sleep => Fn { sleep(args.first); args.first }
               }, # env
               0, # line_num
               nil, # call_parent_num
@@ -126,8 +126,8 @@ class Lisp
               ]
             }
           ].freeze
-        in Proc => pro
-          args_poped_vm.current_stack_frame_stack_push(pro.(args))
+        in Function => function
+          args_poped_vm.current_stack_frame_stack_push(function.(args, vm))
             .current_stack_frame_line_num_add(1)
         in Closure => closure
           new_stack_frame = StackFrame[
@@ -143,6 +143,10 @@ class Lisp
             .insert_stack_frame(new_stack_frame_num, new_stack_frame)
             .change_stack_frame_num(new_stack_frame_num)
         end
+      end
+
+      def Fn(&block)
+        Function.new(block)
       end
 
       def print_debug_log(vm, code_table)
