@@ -52,12 +52,18 @@ class Lisp
             codes = exp[2..]
             code_table << codes.flat_map { |code| compile_r.(code) }
             [ "closure@#{code_table.size - 1}@#{args.join(',')}" ]
+          in :callcc
+            arg = exp[1]
+            [
+              *compile_r.(arg),
+              'callcc'
+            ]
           in Symbol | Array
             method = exp.first
             args = exp[1..]
             [
               *args.map { |a| compile_r.(a) },
-              compile_r.(method),
+              *compile_r.(method),
               "send@#{args.size}"
             ]
           end

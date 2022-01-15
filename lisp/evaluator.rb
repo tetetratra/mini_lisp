@@ -8,7 +8,6 @@ class Lisp
             0 => StackFrame[
               [], # stack
               {
-                :callcc => :callcc,
                 :'+' => ->(args) { args.inject(:+) },
                 :'-' => ->(args) { args[0] - args[1..].inject(:+) },
                 :'==' => ->(args) { args[0] == args[1] },
@@ -69,6 +68,21 @@ class Lisp
             ]
             vm.current_stack_frame_stack_push(closure)
               .current_stack_frame_line_num_add(1)
+          when /^callcc/
+            closure_poped_vm, closure = vm.current_stack_frame_stack_pop
+            continuation = Continuation[closure_poped_vm.current_stack_frame_line_num_add(1)]
+            new_stack_frame = StackFrame[
+              [], # stack
+              { closure.args.first => continuation }, # env
+              0, # line_num
+              closure_poped_vm.stack_frame_num, # call_parent_num
+              closure.stack_frame_num, # env_parent_num
+              closure.function_num # code_table_num
+            ].freeze
+            new_stack_frame_num = closure_poped_vm.stack_frames.size
+            closure_poped_vm.current_stack_frame_line_num_add(1)
+              .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+              .change_stack_frame_num(new_stack_frame_num)
           when /^send@(\d+)/
             exec_send(vm, code_table, $1.to_i)
           when /^jumpif@(\d+)/
@@ -95,21 +109,6 @@ class Lisp
           [next_vm, [poped, *args]]
         }
         case method
-        in :callcc
-          continuation = Continuation[args_poped_vm.current_stack_frame_line_num_add(1)]
-          closure = args.first
-          new_stack_frame = StackFrame[
-            [], # stack
-            { closure.args.first => continuation }, # env
-            0, # line_num
-            args_poped_vm.stack_frame_num, # call_parent_num
-            closure.stack_frame_num, # env_parent_num
-            closure.function_num # code_table_num
-          ].freeze
-          new_stack_frame_num = args_poped_vm.stack_frames.size
-          args_poped_vm.current_stack_frame_line_num_add(1)
-            .insert_stack_frame(new_stack_frame_num, new_stack_frame)
-            .change_stack_frame_num(new_stack_frame_num)
         in Continuation => continuation
           VM[ # continuation.vmの環境を現在の環境に差し替えている
             continuation.vm.stack_frame_num,
