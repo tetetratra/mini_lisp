@@ -36,7 +36,7 @@ class Lisp
             [
               *compiled_cond,
               'get@!',
-              'send',
+              'send@1',
               "jumpif@#{compiled_statements.size + 1}",
               *compiled_statements,
               "jump@#{-(4 + compiled_statements.size + compiled_cond.size)}"
@@ -47,15 +47,11 @@ class Lisp
             [*compile_r.(exp[2]), "set@#{exp[1]}"]
           in :'->'
             args = exp[1]
-            raise "argument `#{args.find { Symbol !== _1 }}` in `#{exp}` must be symbol" unless args.all? { Symbol === _1 }
-            codes = exp[2..]
+            raise "argument `#{args.find { Symbol != _1 }}` in `#{exp}` must be symbol" unless args.all? { Symbol === _1 }
 
-            ret = ["closure@#{code_table.size}@#{args.first}"]
-            (args[1..] || []).each do |arg|
-              code_table << ["closure@#{code_table.size + 1}@#{arg}"]
-            end
+            codes = exp[2..]
             code_table << codes.flat_map { |code| compile_r.(code) }
-            ret
+            [ "closure@#{code_table.size - 1}@#{args.join(',')}" ]
           in :callcc
             arg = exp[1]
             [
@@ -66,9 +62,9 @@ class Lisp
             method = exp.first
             args = exp[1..]
             [
-              *args.reverse.map { |a| compile_r.(a) },
+              *args.map { |a| compile_r.(a) },
               *compile_r.(method),
-              *args.size.times.map { "send" }
+              "send@#{args.size}"
             ]
           end
         end.flatten(1)
