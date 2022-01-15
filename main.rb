@@ -11,7 +11,7 @@ require_relative 'lisp/evaluator.rb'
 class Proc
   alias __inspect__ inspect
   def inspect
-    'Proc' + __inspect__[/:\d+ /][/\d+/]
+    'Proc' # + __inspect__[/:\d+ /][/\d+/]
   end
 end
 

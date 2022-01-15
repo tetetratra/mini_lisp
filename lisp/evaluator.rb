@@ -8,14 +8,14 @@ class Lisp
             0 => StackFrame[
               [], # stack
               {
-                :'+' => ->(args) { args.inject(:+) },
-                :'-' => ->(args) { args[0] - args[1..].inject(:+) },
-                :'==' => ->(args) { args[0] == args[1] },
-                :'!=' => ->(args) { args[0] != args[1] },
-                :'!' => ->(args) { !args[0] },
-                :p => ->(args) { p args.first },
-                :puts => ->(args) { puts args.first; args.first },
-                :sleep => ->(args) { sleep(args.first); args.first }
+                :'+' => ->(a, b) { a + b }.curry(2),
+                :'-' => ->(a, b) { a - b }.curry(2),
+                :'==' => ->(a, b) { a == b }.curry(2),
+                :'!=' => ->(a, b) { a != b }.curry(2),
+                :'!' => ->(a) { !a },
+                :p => ->(a) { p a },
+                :puts => ->(a) { puts a; a },
+                :sleep => ->(a) { sleep(a); a }
               }, # env
               0, # line_num
               nil, # call_parent_num
@@ -83,8 +83,8 @@ class Lisp
             closure_poped_vm.current_stack_frame_line_num_add(1)
               .insert_stack_frame(new_stack_frame_num, new_stack_frame)
               .change_stack_frame_num(new_stack_frame_num)
-          when /^send@(\d+)/
-            exec_send(vm, code_table, $1.to_i)
+          when /^send/
+            exec_send(vm, code_table)
           when /^jumpif@(\d+)/
             cond = vm.current_stack_frame.stack.last
             line_relative = $1.to_i
@@ -102,12 +102,12 @@ class Lisp
 
       private
 
-      def exec_send(vm, code_table, argc)
+      def exec_send(vm, code_table)
         method_poped_vm, method = vm.current_stack_frame_stack_pop
-        args_poped_vm, args = argc.times.reduce([method_poped_vm, []]) { |(memo_vm, args), _|
-          next_vm, poped = memo_vm.current_stack_frame_stack_pop
-          [next_vm, [poped, *args]]
-        }
+        arg_poped_vm, arg = method_poped_vm.current_stack_frame_stack_pop
+        args = [arg] # TODO あとで変数名直す
+        args_poped_vm = arg_poped_vm # TODO あとで変数名直す
+
         case method
         in Continuation => continuation
           VM[ # continuation.vmの環境を現在の環境に差し替えている
@@ -127,7 +127,9 @@ class Lisp
             }
           ].freeze
         in Proc => pro
-          args_poped_vm.current_stack_frame_stack_push(pro.(args))
+          proc_applyed = args.reduce(pro) { |proc_applying, arg| proc_applying.(arg) }
+
+          args_poped_vm.current_stack_frame_stack_push(proc_applyed)
             .current_stack_frame_line_num_add(1)
         in Closure => closure
           new_stack_frame = StackFrame[
