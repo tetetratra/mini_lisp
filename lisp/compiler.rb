@@ -47,11 +47,13 @@ module Lisp
             [*compile_r.(exp[2]), "set@#{exp[1]}"]
           in :'->'
             args = exp[1]
+            codes = exp[2..]
             raise "argument `#{args.find { Symbol != _1 }}` in `#{exp}` must be symbol" unless args.all? { Symbol === _1 }
 
-            codes = exp[2..]
-            code_table << codes.flat_map { |code| compile_r.(code) }
-            [ "closure@#{code_table.size - 1}@#{args.join(',')}" ]
+            codes_index = code_table.size
+            code_table[codes_index] = nil # TODO 改善したい
+            code_table[codes_index] = codes.flat_map { |code| compile_r.(code) }
+            [ "closure@#{codes_index}@#{args.join(',')}" ]
           in Symbol | Array
             method = exp.first
             args = exp[1..]
