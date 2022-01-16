@@ -198,11 +198,14 @@ module Lisp
       end
 
       def print_debug_log(vm, code_table)
+        puts "stack_frame_num = #{vm.stack_frame_num.inspect}"
         p vm.current_stack_frame.stack
-        p vm.current_stack_frame.list_env(vm.stack_frames)
+        p vm.current_stack_frame.env
+        puts "call_parent_num = #{vm.current_stack_frame.call_parent_num.inspect}"
+        puts "env_parent_num = #{vm.current_stack_frame.env_parent_num.inspect}"
         code = code_table[vm.current_stack_frame.code_table_num]
         line = code[vm.current_stack_frame.line_num]
-        puts "code_table[#{vm.current_stack_frame.code_table_num}][#{vm.current_stack_frame.line_num}]\n= #{code}[#{vm.current_stack_frame.line_num}]\n= #{line.inspect}"
+        puts "code_table[#{vm.current_stack_frame.code_table_num}][#{vm.current_stack_frame.line_num}]\n  = #{code}[#{vm.current_stack_frame.line_num}]\n  = #{line.inspect}"
         puts '------------'
       end
     end

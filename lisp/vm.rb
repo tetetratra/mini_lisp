@@ -27,10 +27,6 @@ module Lisp
       current_stack_frame.find_env(name, stack_frames)
     end
 
-    def current_stack_frame_list_env
-      current_stack_frame.list_env(stack_frames)
-    end
-
     def current_stack_frame_update_env(name, value)
       stack_frame_target_num = stack_frame_num
       if current_stack_frame.env[name].nil?
@@ -141,10 +137,6 @@ module Lisp
 
     def find_env(name, call_stack)
       env[name] || env_parent(call_stack)&.find_env(name, call_stack)
-    end
-
-    def list_env(call_stack)
-      [ *env_parent(call_stack)&.list_env(call_stack), { **env } ]
     end
   end
 
