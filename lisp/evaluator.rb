@@ -21,7 +21,8 @@ module Lisp
                 :print => Fn { print args.first; args.first },
                 :sleep => Fn { sleep(args.first); args.first },
                 :stack_frames_size => Fn { vm.stack_frames.size },
-                :vm => Fn { vm }
+                :stack_frame_num => Fn { vm.stack_frame_num },
+                :vm => Fn { vm },
               }, # env
               0, # line_num
               nil, # call_parent_num
@@ -121,18 +122,21 @@ module Lisp
         in Continuation => continuation
           VM[ # continuation.vmの環境を現在の環境に差し替えている
             continuation.vm.stack_frame_num,
-            continuation.vm.stack_frames.to_h { |continuation_stack_frame_num, continuation_stack_frame|
-              [
-                continuation_stack_frame_num,
-                StackFrame[
-                  [*continuation_stack_frame.stack, args.first], # stack
-                  args_poped_vm.stack_frames[continuation_stack_frame_num].env, # env
-                  continuation_stack_frame.line_num, # line_num
-                  continuation_stack_frame.call_parent_num, # call_parent_num
-                  continuation_stack_frame.env_parent_num, # env_parent_num
-                  continuation_stack_frame.code_table_num, # code_table_num
-                ].freeze
-              ]
+            {
+              **args_poped_vm.stack_frames, # continuation.vm には含まれていないスタックフレームも引き継ぐ
+              **continuation.vm.stack_frames.to_h { |continuation_stack_frame_num, continuation_stack_frame|
+                [
+                  continuation_stack_frame_num,
+                  StackFrame[
+                    [*continuation_stack_frame.stack, args.first], # stack
+                    args_poped_vm.stack_frames[continuation_stack_frame_num].env, # env
+                    continuation_stack_frame.line_num, # line_num
+                    continuation_stack_frame.call_parent_num, # call_parent_num
+                    continuation_stack_frame.env_parent_num, # env_parent_num
+                    continuation_stack_frame.code_table_num, # code_table_num
+                  ].freeze
+                ]
+              }
             }
           ].freeze
         in Function => function
