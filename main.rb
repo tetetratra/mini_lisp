@@ -8,6 +8,9 @@ require_relative 'lisp/compiler.rb'
 require_relative 'lisp/vm.rb'
 require_relative 'lisp/evaluator.rb'
 
-src = File.open(ARGV.first, &:read)
-Lisp.run(src)
+ARGV.each do |file_name|
+  puts "\n----- #{file_name} -----" if $debug
+  src = File.open(file_name, &:read)
+  Lisp.run(src)
+end
 
