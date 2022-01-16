@@ -9,6 +9,7 @@ module Lisp
               [], # stack
               {
                 :callcc => :callcc,
+                :gc => :gc,
                 :'+' => Fn { args.inject(:+) },
                 :'-' => Fn { args[0] - args[1..].inject(:+) },
                 :'==' => Fn { args[0] == args[1] },
@@ -17,6 +18,7 @@ module Lisp
                 :p => Fn { p args.first },
                 :pp => Fn { pp args.first },
                 :puts => Fn { puts args.first; args.first },
+                :print => Fn { print args.first; args.first },
                 :sleep => Fn { sleep(args.first); args.first },
                 :stack_frames_size => Fn { vm.stack_frames.size },
                 :vm => Fn { vm }
@@ -99,7 +101,7 @@ module Lisp
         }
         case method
         in :callcc
-          continuation = Continuation[args_poped_vm.current_stack_frame_line_num_add(1)]
+          continuation = Continuation[args_poped_vm.current_stack_frame_line_num_add(1).then { exec_gc(_1) }]
           closure = args.first
           new_stack_frame = StackFrame[
             [], # stack
@@ -109,10 +111,13 @@ module Lisp
             closure.stack_frame_num, # env_parent_num
             closure.function_num # code_table_num
           ].freeze
-          new_stack_frame_num = args_poped_vm.stack_frames.size
+          new_stack_frame_num = args_poped_vm.available_stack_frame_num
           args_poped_vm.current_stack_frame_line_num_add(1)
             .insert_stack_frame(new_stack_frame_num, new_stack_frame)
             .change_stack_frame_num(new_stack_frame_num)
+        in :gc
+          exec_gc(args_poped_vm)
+            .current_stack_frame_line_num_add(1)
         in Continuation => continuation
           VM[ # continuation.vmの環境を現在の環境に差し替えている
             continuation.vm.stack_frame_num,
@@ -142,11 +147,50 @@ module Lisp
             closure.stack_frame_num, # env_parent_num
             closure.function_num # code_table_num
           ].freeze
-          new_stack_frame_num = args_poped_vm.stack_frames.size
+          new_stack_frame_num = args_poped_vm.available_stack_frame_num
           args_poped_vm.current_stack_frame_line_num_add(1)
             .insert_stack_frame(new_stack_frame_num, new_stack_frame)
             .change_stack_frame_num(new_stack_frame_num)
         end
+      end
+
+      def exec_gc(vm)
+        keep = vm.stack_frames.to_h { |num, _sf| [num, false] }
+
+        keep[vm.stack_frame_num] = true
+        stack = [ vm.stack_frame_num ]
+
+        until stack.empty?
+          poped_stack_frame_num = stack.pop
+          stack_frame = vm.stack_frames[poped_stack_frame_num]
+
+          if (cpn = stack_frame.call_parent_num) && !keep[cpn]
+            stack << cpn
+            keep[cpn] = true
+          end
+
+          if (epn = stack_frame.env_parent_num) && !keep[epn]
+            stack << epn
+            keep[epn] = true
+          end
+
+          stack_frame.env
+            .select { |_n, v| v in Closure }
+            .each do |_name, value|
+            case value
+            in Closure => closure_value
+              unless keep[sfn = closure_value.stack_frame_num]
+                stack << sfn
+                keep[sfn] = true
+              end
+            end
+          end
+        end
+
+        VM[
+          vm.stack_frame_num,
+          vm.stack_frames.select { |num, _sf| keep[num] }
+        ]
       end
 
       def Fn(&block)

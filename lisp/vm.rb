@@ -112,6 +112,10 @@ module Lisp
       ].freeze
     end
 
+    def available_stack_frame_num
+      (0..).find { |n| !stack_frames.keys.include?(n) }
+    end
+
     def insert_stack_frame(n, stack_frame)
       VM[
         stack_frame_num,
