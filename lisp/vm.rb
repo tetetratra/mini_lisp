@@ -1,162 +1,120 @@
 module Lisp
-  VM = Struct.new(:stack_frame_num, :stack_frames) do
-    def change_stack_frame_num(n)
-      VM[
-        n,
-        stack_frames
-      ].freeze
-    end
-
-    def current_stack_frame
-      stack_frames[stack_frame_num]
-    end
-
-    def current_stack_frame_call_parent
-      stack_frames[current_stack_frame.call_parent_num]
-    end
-
-    def current_stack_frame_env_parent
-      stack_frames[current_stack_frame.env_parent_num]
-    end
-
-    def current_stack_frame_finish?(code_table)
-      current_stack_frame.line_num == code_table[current_stack_frame.code_table_num].size
-    end
-
-    def current_stack_frame_find_env(name)
-      current_stack_frame.find_env(name, stack_frames)
-    end
-
-    def current_stack_frame_update_env(name, value)
-      stack_frame_target_num = stack_frame_num
-      if current_stack_frame.env[name].nil?
-        loop do
-          stack_frame_target_num = stack_frames[stack_frame_target_num].env_parent_num
-          if stack_frame_target_num.nil?
-            stack_frame_target_num = stack_frame_num
-            break
-          end
-          break if stack_frames[stack_frame_target_num].env[name]
-        end
-      end
-
-      VM[
-        stack_frame_num,
-        {
-          **stack_frames.except(stack_frame_target_num),
-          stack_frame_target_num => StackFrame[
-            stack_frames[stack_frame_target_num].stack,
-            { **stack_frames[stack_frame_target_num].env, name => value },
-            stack_frames[stack_frame_target_num].line_num,
-            stack_frames[stack_frame_target_num].call_parent_num,
-            stack_frames[stack_frame_target_num].env_parent_num,
-            stack_frames[stack_frame_target_num].code_table_num
-          ]
-        }
-      ].freeze
-    end
-
-    def current_stack_frame_stack_push(value)
-      VM[
-        stack_frame_num,
-        {
-          **stack_frames.except(stack_frame_num),
-          stack_frame_num => StackFrame[
-            [*current_stack_frame.stack, value],
-            current_stack_frame.env,
-            current_stack_frame.line_num,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
-    end
-
-    def current_stack_frame_stack_pop
-      vm = VM[
-        stack_frame_num,
-        {
-          **stack_frames.except(stack_frame_num),
-          stack_frame_num => StackFrame[
-            current_stack_frame.stack[..-2],
-            current_stack_frame.env,
-            current_stack_frame.line_num,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
-      [vm, current_stack_frame.stack.last]
-    end
-
-    def current_stack_frame_line_num_add(n)
-      VM[
-        stack_frame_num,
-        {
-          **stack_frames.except(stack_frame_num),
-          stack_frame_num => StackFrame[
-            current_stack_frame.stack,
-            current_stack_frame.env,
-            current_stack_frame.line_num + n,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
-    end
-
-    def available_stack_frame_num
-      (0..).find { |n| !stack_frames.keys.include?(n) }
-    end
-
-    def insert_stack_frame(n, stack_frame)
-      VM[
-        stack_frame_num,
-        {
-          **stack_frames,
-          n => stack_frame
-        }
-      ].freeze
-    end
-  end
-
   StackFrame = Struct.new(
     :stack,
     :env,
     :line_num,
-    :call_parent_num,
-    :env_parent_num,
+    :call_parent,
+    :env_parent,
     :code_table_num
   ) do
-    def env_parent(call_stack)
-      call_stack[env_parent_num]
+    def push(val)
+      StackFrame[
+        [*stack, val],
+        env,
+        line_num,
+        call_parent,
+        env_parent,
+        code_table_num
+      ]
     end
 
-    def find_env(name, call_stack)
-      env[name] || env_parent(call_stack)&.find_env(name, call_stack)
+    def pop
+      stack => [*poped_stack, poped_value]
+      [
+        StackFrame[
+          poped_stack,
+          env,
+          line_num,
+          call_parent,
+          env_parent,
+          code_table_num
+        ],
+        poped_value
+      ]
+    end
+
+    def finish?(code_table)
+      line_num == code_table[code_table_num].size
+    end
+
+    def find_variable(name)
+      env[name] || env_parent&.find_variable(name)
+    end
+
+    def update_variable(name, value)
+      if env[name] || find_variable(name).nil?
+        StackFrame[
+          stack,
+          { **env, name => value },
+          line_num,
+          call_parent,
+          env_parent,
+          code_table_num
+        ]
+      else
+        StackFrame[
+          stack,
+          env,
+          line_num,
+          call_parent,
+          env_parent.update_variable(name, value),
+          code_table_num
+        ]
+      end
+    end
+
+    def line_num_add(n)
+      StackFrame[
+        stack,
+        env,
+        line_num + n,
+        call_parent,
+        env_parent,
+        code_table_num
+      ]
+    end
+
+    def call_parent_size
+      call_parent ? (1 + call_parent.call_parent_size) : 0
+    end
+
+    def env_parent_size
+      env_parent ? (1 + env_parent.env_parent_size) : 0
+    end
+
+    def print_debug_log(code_table)
+      all_env = Proc.new { [_1.env_parent && all_env.(_1.env_parent), _1.env].compact }
+      p stack
+      p all_env.(self)
+
+      puts 'call: ' + '- ' * call_parent_size + '*'
+      puts 'env:  ' + '- ' * env_parent_size + '*'
+      code = code_table[code_table_num]
+      line = code[line_num]
+      print "code_table[#{code_table_num}][#{line_num}]"
+      # puts "  = #{code}[#{line_num}]"
+      puts "  = #{line.inspect}"
+      puts '------------'
     end
   end
 
   Function = Struct.new(:proc) do
     def inspect
-      "Function#{proc.inspect.match(/rb:(\d+)/)[1]}"
+      "Fn#{proc.inspect.match(/rb:(\d+)/)[1]}"
     end
 
-    def call(args, vm)
-      Struct.new(:args, :vm).new(args, vm).instance_eval(&proc)
+    def call(args, stack_frame)
+      Struct.new(:args, :stack_frame).new(args, stack_frame).instance_eval(&proc)
     end
   end
 
-  Closure = Struct.new(:function_num, :args, :stack_frame_num) do
+  Closure = Struct.new(:function_num, :args, :stack_frame) do
     def inspect
       "Closure#{function_num}(#{args.join(',')})"
     end
   end
 
-  Continuation = Struct.new(:vm) do
+  Continuation = Struct.new(:stack_frame) do
     def inspect
       "Continuation"
     end
