@@ -1,3 +1,6 @@
+require 'rainbow/refinement'
+using Rainbow
+
 module Lisp
   VM = Struct.new(:stack_frame_num, :stack_frames) do
     def change_stack_frame_num(n)
@@ -123,7 +126,6 @@ module Lisp
     end
 
     def gc
-      p :gc!
       keep = stack_frames.to_h { |num, _sf| [num, false] }
 
       keep[stack_frame_num] = true
@@ -182,7 +184,7 @@ module Lisp
 
   Function = Struct.new(:proc) do
     def inspect
-      "Function#{proc.inspect.match(/rb:(\d+)/)[1]}"
+      'Fn'
     end
 
     def call(args, vm)
@@ -192,13 +194,13 @@ module Lisp
 
   Closure = Struct.new(:function_num, :args, :stack_frame_num) do
     def inspect
-      "Closure#{function_num}(#{args.join(',')})"
+      "->#{function_num}(#{args.join(',')})".blue
     end
   end
 
   Continuation = Struct.new(:vm) do
     def inspect
-      "Continuation"
+      "Cont".green
     end
   end
 end

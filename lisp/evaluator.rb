@@ -1,3 +1,6 @@
+require 'rainbow/refinement'
+using Rainbow
+
 module Lisp
   class Evaluator
     class << self
@@ -20,7 +23,6 @@ module Lisp
                 :puts => Fn { puts args.first; args.first },
                 :print => Fn { print args.first; args.first },
                 :sleep => Fn { sleep(args.first); args.first },
-                :vm => Fn { vm },
               },
               0,
               nil,
@@ -30,18 +32,22 @@ module Lisp
           }
         ].freeze
 
+        print_code_table(init_vm, code_table) if $debug
+
         loop.reduce(init_vm) do |vm, _|
           if vm.current_stack_frame_finish?(code_table)
-            print_debug_log(vm, code_table) if $debug
+            print_stack_frame(vm, code_table) if $debug
             if vm.current_stack_frame.call_parent_num.nil?
               break
             else
-              next vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
+              next_vm = vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
                      .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
+              print_code_table(next_vm, code_table) if $debug
+              next next_vm
             end
           end
 
-          print_debug_log(vm, code_table) if $debug
+          print_stack_frame(vm, code_table) if $debug
 
           line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]
           case line
@@ -103,11 +109,11 @@ module Lisp
         in :callcc
           continuation = Continuation[
             args_poped_vm
-              .gc
               .current_stack_frame_line_num_add(1)
           ]
 
           closure = args.first
+
           new_stack_frame = StackFrame[
             [],
             { closure.args.first => continuation },
@@ -117,17 +123,20 @@ module Lisp
             closure.function_num
           ].freeze
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
-          args_poped_vm
+
+          next_vm = args_poped_vm
             .current_stack_frame_line_num_add(1)
             .insert_stack_frame(new_stack_frame_num, new_stack_frame)
             .change_stack_frame_num(new_stack_frame_num)
+          print_code_table(next_vm, code_table) if $debug
+          next_vm
         in :gc
           args_poped_vm
             .gc
             .current_stack_frame_line_num_add(1)
         in Continuation => continuation
           # continuation.vmの環境を現在の環境に差し替えている
-          VM[
+          next_vm = VM[
             continuation.vm.stack_frame_num,
             {
                # continuation.vm には含まれていないスタックフレームも引き継ぐ
@@ -147,6 +156,8 @@ module Lisp
               }
             }
           ].freeze
+          print_code_table(next_vm, code_table) if $debug
+          next_vm
         in Function => function
           args_poped_vm
             .current_stack_frame_stack_push(function.(args, vm))
@@ -161,10 +172,12 @@ module Lisp
             closure.function_num
           ].freeze
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
-          args_poped_vm
+          next_vm = args_poped_vm
             .current_stack_frame_line_num_add(1)
             .insert_stack_frame(new_stack_frame_num, new_stack_frame)
             .change_stack_frame_num(new_stack_frame_num)
+          print_code_table(next_vm, code_table) if $debug
+          next_vm
         end
       end
 
@@ -172,15 +185,18 @@ module Lisp
         Function.new(block)
       end
 
-      def print_debug_log(vm, code_table)
-        puts "stack_frame_num = #{vm.stack_frame_num.inspect}"
+      def print_code_table(vm, code_table)
+        puts ({ vm.current_stack_frame.code_table_num => code_table[vm.current_stack_frame.code_table_num] }).inspect.red
+        puts '------------'
+      end
+
+      def print_stack_frame(vm, code_table)
         p vm.current_stack_frame.stack
-        p vm.current_stack_frame.env
-        puts "call_parent_num = #{vm.current_stack_frame.call_parent_num.inspect}"
-        puts "env_parent_num = #{vm.current_stack_frame.env_parent_num.inspect}"
-        code = code_table[vm.current_stack_frame.code_table_num]
-        line = code[vm.current_stack_frame.line_num]
-        puts "code_table[#{vm.current_stack_frame.code_table_num}][#{vm.current_stack_frame.line_num}]\n  = #{code}[#{vm.current_stack_frame.line_num}]\n  = #{line.inspect}"
+        puts "#{vm.stack_frame_num.inspect} ( c: #{vm.current_stack_frame.call_parent_num.inspect} | e: #{vm.current_stack_frame.env_parent_num.inspect} )"
+        print '...' if vm.current_stack_frame.env.size > 3
+        puts vm.current_stack_frame.env.to_a.reverse.to_a.take(3).reverse.to_h.inspect
+        line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]
+        puts "[#{vm.current_stack_frame.code_table_num}][#{vm.current_stack_frame.line_num}] = " + line.inspect.yellow
         puts '------------'
       end
     end
