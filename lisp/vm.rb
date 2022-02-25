@@ -121,6 +121,46 @@ module Lisp
         }
       ].freeze
     end
+
+    def gc
+      p :gc!
+      keep = stack_frames.to_h { |num, _sf| [num, false] }
+
+      keep[stack_frame_num] = true
+      stack = [stack_frame_num]
+
+      until stack.empty?
+        poped_stack_frame_num = stack.pop
+        stack_frame = stack_frames[poped_stack_frame_num]
+
+        if (cpn = stack_frame.call_parent_num) && !keep[cpn]
+          stack << cpn
+          keep[cpn] = true
+        end
+
+        if (epn = stack_frame.env_parent_num) && !keep[epn]
+          stack << epn
+          keep[epn] = true
+        end
+
+        stack_frame.env
+          .select { |_n, v| v in Closure }
+          .each do |_name, value|
+          case value
+          in Closure => closure_value
+            unless keep[sfn = closure_value.stack_frame_num]
+              stack << sfn
+              keep[sfn] = true
+            end
+          end
+        end
+      end
+
+      VM[
+        stack_frame_num,
+        stack_frames.select { |num, _sf| keep[num] }
+      ]
+    end
   end
 
   StackFrame = Struct.new(
