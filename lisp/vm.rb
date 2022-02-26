@@ -153,17 +153,19 @@ module Lisp
 
         (stack_frame.env.values + stack_frame.stack).each do |value|
           case value
-          in Closure => closure_value
-            unless keep[sfn = closure_value.stack_frame_num]
+          in Closure => closure
+            sfn = closure.stack_frame_num
+            unless keep[sfn]
               stack << sfn
               keep[sfn] = true
             end
-          # in Continuation => continuation_value
-            # TODO Continuationが持っている別のVM内の変数や実行スタックが、現在のVMのスタックフレームを参照しているかもしれない
-            #
-            # shift_resetのGCで、 sf4 がdropされるとき、sf3,0,2,1 は(辿れば)すべて見える
-            # global_ctnがCont{1, 0, 2, 3, 4, 5, 6, 7}を持っていて、
-            # global_ctnはsf0がもっているから、sf5~8をdropするのはNG
+          in Continuation => continuation
+            continuation.vm.stack_frames.keys.each do |n|
+              unless keep[n]
+                stack << n
+                keep[n] = true
+              end
+            end
           in _ # do nothing
           end
         end
