@@ -32,14 +32,15 @@ module Lisp
 
     def current_stack_frame_update_env(name, value)
       stack_frame_target_num = stack_frame_num
-      if current_stack_frame.env[name].nil?
+      unless current_stack_frame.env.key?(name)
         loop do
           stack_frame_target_num = stack_frames[stack_frame_target_num].env_parent_num
           if stack_frame_target_num.nil?
             stack_frame_target_num = stack_frame_num
             break
+          elsif stack_frames[stack_frame_target_num].env.key?(name)
+            break
           end
-          break if stack_frames[stack_frame_target_num].env[name]
         end
       end
 
@@ -179,7 +180,15 @@ module Lisp
     end
 
     def find_env(name, call_stack)
-      env[name] || env_parent(call_stack)&.find_env(name, call_stack)
+      if env.key?(name)
+        env[name]
+      else
+        if env_parent = env_parent(call_stack)
+          env_parent.find_env(name, call_stack)
+        else
+          raise "variable `#{name}` is not defined"
+        end
+      end
     end
   end
 

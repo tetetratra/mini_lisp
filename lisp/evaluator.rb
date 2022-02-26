@@ -11,6 +11,7 @@ module Lisp
             0 => StackFrame[
               [],
               {
+                :nil => nil,
                 :callcc => :callcc,
                 :gc => :gc,
                 :'+' => Fn { args.inject(:+) },
@@ -66,7 +67,6 @@ module Lisp
           when /^get@(.+)/
             var_name = $1.to_sym
             value = vm.current_stack_frame_find_env(var_name)
-            raise "variable `#{var_name}` is not defined" if value.nil?
 
             vm.current_stack_frame_stack_push(value)
               .current_stack_frame_line_num_add(1)
