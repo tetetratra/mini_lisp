@@ -13,6 +13,10 @@ module Lisp
               [],
               {
                 :nil => nil,
+                :true => true,
+                :t => true,
+                :false => false,
+                :f => false,
                 :callcc => :callcc,
                 :gc => :gc,
                 :'+' => Fn { args.inject(:+) },
