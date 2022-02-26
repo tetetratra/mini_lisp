@@ -31,30 +31,33 @@ module Lisp
     end
 
     def current_stack_frame_update_env(name, value)
-      stack_frame_target_num = stack_frame_num
-      unless current_stack_frame.env.key?(name)
-        loop do
-          stack_frame_target_num = stack_frames[stack_frame_target_num].env_parent_num
-          if stack_frame_target_num.nil?
-            stack_frame_target_num = stack_frame_num
-            break
-          elsif stack_frames[stack_frame_target_num].env.key?(name)
-            break
-          end
+      target_stack_frame_num = loop.reduce(stack_frame_num) do |num, _|
+        stack_frame = stack_frames[num]
+        env_parent_num = stack_frame.env_parent_num
+
+        if stack_frame.env.key?(name)
+          break num
+        elsif env_parent_num.nil?
+          # 根まで辿ってもなかったら現在のスタックフレームの環境を使う
+          break stack_frame_num
+        elsif stack_frame.env.key?(name)
+          break num
+        else
+          env_parent_num
         end
       end
 
       VM[
         stack_frame_num,
         {
-          **stack_frames.except(stack_frame_target_num),
-          stack_frame_target_num => StackFrame[
-            stack_frames[stack_frame_target_num].stack,
-            { **stack_frames[stack_frame_target_num].env, name => value },
-            stack_frames[stack_frame_target_num].line_num,
-            stack_frames[stack_frame_target_num].call_parent_num,
-            stack_frames[stack_frame_target_num].env_parent_num,
-            stack_frames[stack_frame_target_num].code_table_num
+          **stack_frames.except(target_stack_frame_num),
+          target_stack_frame_num => StackFrame[
+            stack_frames[target_stack_frame_num].stack,
+            { **stack_frames[target_stack_frame_num].env, name => value },
+            stack_frames[target_stack_frame_num].line_num,
+            stack_frames[target_stack_frame_num].call_parent_num,
+            stack_frames[target_stack_frame_num].env_parent_num,
+            stack_frames[target_stack_frame_num].code_table_num
           ]
         }
       ].freeze
