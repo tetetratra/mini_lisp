@@ -158,12 +158,18 @@ module Lisp
               stack << sfn
               keep[sfn] = true
             end
-          # in Continuation
+          # in Continuation => continuation_value
             # TODO Continuationが持っている別のVM内の変数や実行スタックが、現在のVMのスタックフレームを参照しているかもしれない
+            #
+            # shift_resetのGCで、 sf4 がdropされるとき、sf3,0,2,1 は(辿れば)すべて見える
+            # global_ctnがCont{1, 0, 2, 3, 4, 5, 6, 7}を持っていて、
+            # global_ctnはsf0がもっているから、sf5~8をdropするのはNG
           in _ # do nothing
           end
         end
       end
+
+      puts "droped: #{keep.reject{ _2 }.keys.to_set.inspect[/{.*}/]}".cyan if $debug && keep.reject{ _2 }.any?
 
       VM[
         stack_frame_num,
