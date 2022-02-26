@@ -23,6 +23,7 @@ module Lisp
                 :puts => Fn { puts args.first; args.first },
                 :print => Fn { print args.first; args.first },
                 :sleep => Fn { sleep(args.first); args.first },
+                :stack_frames_size => Fn { vm.stack_frames.size },
               },
               0,
               nil,
@@ -92,7 +93,7 @@ module Lisp
             vm.current_stack_frame_line_num_add($1.to_i + 1)
           else
             raise "command `#{line.inspect}` is not found"
-          end
+          end.then { $gc_every_time ? _1.gc : _1 }
         end
       end
 
@@ -157,6 +158,7 @@ module Lisp
             }
           ].freeze
           print_code_table(next_vm, code_table) if $debug
+          print_stack_frame(next_vm, code_table) if $debug
           next_vm
         in Function => function
           args_poped_vm
@@ -192,7 +194,7 @@ module Lisp
 
       def print_stack_frame(vm, code_table)
         p vm.current_stack_frame.stack
-        puts "#{vm.stack_frame_num.inspect} ( c: #{vm.current_stack_frame.call_parent_num.inspect} | e: #{vm.current_stack_frame.env_parent_num.inspect} )"
+        puts "#{vm.stack_frame_num.inspect}, c: #{vm.current_stack_frame.call_parent_num.inspect}, e: #{vm.current_stack_frame.env_parent_num.inspect}, sfs: #{vm.stack_frames.keys.inspect}"
         print '...' if vm.current_stack_frame.env.size > 3
         puts vm.current_stack_frame.env.to_a.reverse.to_a.take(3).reverse.to_h.inspect
         line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]

@@ -1,6 +1,7 @@
 #! /usr/bin/env ruby -W0
 
 $debug = !!ARGV.delete('-d')
+$gc_every_time = !!ARGV.delete('-g')
 
 require_relative 'lisp.rb'
 require_relative 'lisp/parser.rb'

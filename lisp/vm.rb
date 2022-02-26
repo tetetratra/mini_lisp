@@ -134,6 +134,7 @@ module Lisp
       until stack.empty?
         poped_stack_frame_num = stack.pop
         stack_frame = stack_frames[poped_stack_frame_num]
+        raise "gc bug: stack_frames[#{poped_stack_frame_num}] is nil" if stack_frame.nil?
 
         if (cpn = stack_frame.call_parent_num) && !keep[cpn]
           stack << cpn
@@ -145,15 +146,15 @@ module Lisp
           keep[epn] = true
         end
 
-        stack_frame.env
-          .select { |_n, v| v in Closure }
-          .each do |_name, value|
+        (stack_frame.env.values + stack_frame.stack).each do |value|
           case value
           in Closure => closure_value
             unless keep[sfn = closure_value.stack_frame_num]
               stack << sfn
               keep[sfn] = true
             end
+          # in Continuation # TODO まずは必要かどうかを考える
+          in _ # do nothing
           end
         end
       end
@@ -194,13 +195,13 @@ module Lisp
 
   Closure = Struct.new(:function_num, :args, :stack_frame_num) do
     def inspect
-      "->#{function_num}(#{args.join(',')})".blue
+      "->#{stack_frame_num}[#{function_num}](#{args.join(',')})".blue
     end
   end
 
   Continuation = Struct.new(:vm) do
     def inspect
-      "Cont".green
+      "Cont#{vm.stack_frames.keys}".green
     end
   end
 end
