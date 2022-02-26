@@ -35,11 +35,10 @@ module Lisp
             compiled_statements = statements.flat_map { |s| compile_r.(s) }
             [
               *compiled_cond,
-              'get@!',
-              'send@1',
-              "jumpif@#{compiled_statements.size + 1}",
+              "jumpunless@#{compiled_statements.size + 1}",
               *compiled_statements,
-              "jump@#{-(4 + compiled_statements.size + compiled_cond.size)}"
+              "jump@#{-(2 + compiled_statements.size + compiled_cond.size)}",
+              'get@nil'
             ]
           in :'='
             raise "variable `#{exp[1]}` in `#{exp}` is not symbol" unless Symbol === exp[1]
