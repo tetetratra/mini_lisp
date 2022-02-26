@@ -1,3 +1,4 @@
+require 'set'
 require 'rainbow/refinement'
 using Rainbow
 
@@ -214,7 +215,7 @@ module Lisp
 
   Continuation = Struct.new(:vm) do
     def inspect
-      "Cont#{vm.stack_frames.keys}".green
+      "Cont#{vm.stack_frames.keys.to_set.inspect[/{.*}/]}".green
     end
   end
 end
