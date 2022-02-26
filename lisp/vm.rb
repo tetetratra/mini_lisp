@@ -157,7 +157,8 @@ module Lisp
               stack << sfn
               keep[sfn] = true
             end
-          # in Continuation # TODO まずは必要かどうかを考える
+          # in Continuation
+            # TODO Continuationが持っている別のVM内の変数や実行スタックが、現在のVMのスタックフレームを参照しているかもしれない
           in _ # do nothing
           end
         end
