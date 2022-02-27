@@ -215,6 +215,12 @@ module Lisp
     end
   end
 
+  Cons = Struct.new(:car, :cdr) do
+    def inspect
+      "(#{car.inspect} . #{cdr.inspect})"
+    end
+  end
+
   Closure = Struct.new(:function_num, :args, :stack_frame_num) do
     def inspect
       "->#{stack_frame_num}[#{function_num}](#{args.join(',')})".blue
