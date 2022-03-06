@@ -1,0 +1,11 @@
+[package]
+name = "mini_lisp"
+version = "0.1.0"
+authors = ["tetetratra <44367208+tetetratra@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "1"
+
