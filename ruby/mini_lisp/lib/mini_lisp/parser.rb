@@ -1,4 +1,4 @@
-module Lisp
+module MiniLisp
   class Parser
     def self.parse(str)
       regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|\".+?\"|\'.+?\'/

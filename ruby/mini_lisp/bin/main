@@ -1,0 +1,16 @@
+#! /usr/bin/env ruby -W0
+
+$debug = !!ARGV.delete('-d')
+$gc_every_time = !!ARGV.delete('-g')
+
+require_relative '../lib/mini_lisp'
+require_relative '../lib/mini_lisp/parser'
+require_relative '../lib/mini_lisp/compiler'
+require_relative '../lib/mini_lisp/vm'
+require_relative '../lib/mini_lisp/evaluator'
+
+ARGV.each do |file_name|
+  puts "\n----- #{file_name} -----" if $debug
+  src = File.open(file_name, &:read)
+  MiniLisp.run(src)
+end

@@ -2,7 +2,7 @@ require 'set'
 require 'rainbow/refinement'
 using Rainbow
 
-module Lisp
+module MiniLisp
   class Evaluator
     class << self
       def exec(code_table)

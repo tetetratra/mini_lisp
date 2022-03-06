@@ -2,7 +2,7 @@ require 'set'
 require 'rainbow/refinement'
 using Rainbow
 
-module Lisp
+module MiniLisp
   VM = Struct.new(:stack_frame_num, :stack_frames) do
     def change_stack_frame_num(n)
       VM[

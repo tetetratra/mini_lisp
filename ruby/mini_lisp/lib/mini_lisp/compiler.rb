@@ -1,4 +1,4 @@
-module Lisp
+module MiniLisp
   class Compiler
     def self.compile(s_exp)
       code_table = [ nil ] # rootのために一時的にnilを置いておく
