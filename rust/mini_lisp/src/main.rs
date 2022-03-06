@@ -46,5 +46,5 @@ fn main() {
         println!("parsed:  {:?}\n", parsed);
         parsed.push(element);
     }
-    println!("{:?}", parsed.first().unwrap());
+    println!("{:?}", parsed);
 }
