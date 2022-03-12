@@ -1,22 +1,55 @@
 use regex::Regex;
 use std::env;
+use std::fmt;
 use std::fs;
 
-#[derive(Debug)]
+#[derive(Clone)]
 enum Parsed {
     S(String),
     P(Vec<Parsed>),
+}
+impl Parsed {
+    fn inspect(&self, depth: i32) {
+        let mut indent = "".to_string();
+        for _ in 0..depth {
+            indent.push_str("  ");
+        }
+        match self {
+            Parsed::S(s) => {
+                print!("{}", s);
+            }
+            Parsed::P(pv) => {
+                print!("\n{}(", indent);
+                for (i, p) in pv.into_iter().enumerate() {
+                    p.inspect(depth + 1);
+                    if i != pv.len() - 1 {
+                        print!(" ")
+                    };
+                }
+                print!(")");
+            }
+        };
+    }
+}
+
+impl fmt::Debug for Parsed {
+    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
+        self.inspect(0);
+        Ok(())
+    }
 }
 
 fn main() {
     let filename = env::args().nth(1).unwrap();
     let raw_code = fs::read_to_string(&filename).unwrap();
     println!("{}", &raw_code);
-    let raw_code2 = Regex::new(r"[#;].*")
+    let raw_code_without_comment = Regex::new(r"[#;].*")
         .unwrap()
-        .replace_all(raw_code.as_str(), "");
-    let owned = raw_code2.into_owned();
-    let code = Regex::new(r"\s+").unwrap().replace_all(owned.as_str(), " ");
+        .replace_all(raw_code.as_str(), "")
+        .into_owned();
+    let code = Regex::new(r"\s+")
+        .unwrap()
+        .replace_all(raw_code_without_comment.as_str(), " ");
 
     let regex = Regex::new(r"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+").unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
@@ -46,5 +79,7 @@ fn main() {
         };
         parsed.push(element);
     }
-    println!("{:?}", parsed);
+    for p in parsed {
+        print!("{:?}", p);
+    }
 }
