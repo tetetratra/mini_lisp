@@ -2,22 +2,22 @@ use regex::Regex;
 use std::fmt;
 
 #[derive(Clone)]
-enum Parsed {
+pub enum Ast {
     S(String),
-    P(Vec<Parsed>),
+    A(Vec<Ast>),
 }
 
-impl Parsed {
+impl Ast {
     fn inspect(&self, depth: i32) {
         let mut indent = "".to_string();
         for _ in 0..depth {
             indent.push_str("  ");
         }
         match self {
-            Parsed::S(s) => {
+            Ast::S(s) => {
                 print!("{}", s);
             }
-            Parsed::P(pv) => {
+            Ast::A(pv) => {
                 print!("\n{}(", indent);
                 for (i, p) in pv.into_iter().enumerate() {
                     p.inspect(depth + 1);
@@ -31,14 +31,14 @@ impl Parsed {
     }
 }
 
-impl fmt::Debug for Parsed {
+impl fmt::Debug for Ast {
     fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
         self.inspect(0);
         Ok(())
     }
 }
 
-pub fn parse(raw_code: String) {
+pub fn parse(raw_code: String) -> Ast {
     let raw_code_without_comment = Regex::new(r"[#;].*")
         .unwrap()
         .replace_all(raw_code.as_str(), "")
@@ -50,20 +50,20 @@ pub fn parse(raw_code: String) {
     let regex = Regex::new(r#"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|".+?""#).unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
 
-    let mut parsed: Vec<Parsed> = vec![];
-    parsed.push(Parsed::S(tokens.next().unwrap()));
+    let mut parsed: Vec<Ast> = vec![];
+    parsed.push(Ast::S(tokens.next().unwrap()));
     let tokens_rest: Vec<String> = tokens.collect();
 
     for token in tokens_rest {
         let element = match token.as_str() {
             ")" => {
-                let mut poped: Vec<Parsed> = vec![Parsed::S(")".to_string())];
+                let mut poped: Vec<Ast> = vec![Ast::S(")".to_string())];
                 loop {
                     match [poped.first(), poped.last()] {
-                        [Some(Parsed::S(fst)), Some(Parsed::S(lst))]
+                        [Some(Ast::S(fst)), Some(Ast::S(lst))]
                             if fst.as_str() == "(" && lst.as_str() == ")" =>
                         {
-                            break Parsed::P(poped.drain(1..=poped.len() - 2).collect())
+                            break Ast::A(poped.drain(1..=poped.len() - 2).collect())
                         }
                         _ => {
                             poped.insert(0, parsed.pop().unwrap());
@@ -71,11 +71,9 @@ pub fn parse(raw_code: String) {
                     }
                 }
             }
-            _ => Parsed::S(token),
+            _ => Ast::S(token),
         };
         parsed.push(element);
     }
-    for p in parsed {
-        print!("{:?}", p);
-    }
+    Ast::A(parsed)
 }
