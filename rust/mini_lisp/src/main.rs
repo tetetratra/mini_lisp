@@ -51,7 +51,7 @@ fn main() {
         .unwrap()
         .replace_all(raw_code_without_comment.as_str(), " ");
 
-    let regex = Regex::new(r"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+").unwrap();
+    let regex = Regex::new(r#"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|".+?""#).unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
 
     let mut parsed: Vec<Parsed> = vec![];
