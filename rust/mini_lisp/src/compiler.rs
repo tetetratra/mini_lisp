@@ -1,12 +1,5 @@
-use regex::Regex;
 use super::parser::Ast;
-
-// #[derive(Debug)]
-// pub struct ByteCode(Vec<String>);
-
-trait AsRef<T: ?Sized> {
-    fn as_ref(&self) -> &T;
-}
+use regex::Regex;
 
 pub fn compile(ast: Ast) -> Vec<String> {
     match ast {
@@ -36,7 +29,7 @@ pub fn compile(ast: Ast) -> Vec<String> {
                         vec![format!("jumpif@{}", else_compiled_len + 1)],
                         else_compiled,
                         vec![format!("jump@{}", then_compiled_len)],
-                        then_compiled
+                        then_compiled,
                     ]
                     .concat()
                 }
@@ -46,26 +39,45 @@ pub fn compile(ast: Ast) -> Vec<String> {
                     let compiled_cond_len = compiled_cond.len();
 
                     let statements: Vec<Ast> = ast_vec.clone().drain(2..).collect();
-                    let compiled_statements: Vec<String> = statements.into_iter().flat_map(compile).collect();
+                    let compiled_statements: Vec<String> =
+                        statements.into_iter().flat_map(compile).collect();
                     let compiled_statements_len = compiled_statements.len();
 
                     vec![
-                      compiled_cond,
-                      vec![format!("jumpunless@{}", compiled_statements_len + 1)],
-                      compiled_statements,
-                      vec![format!("jump@{}", -(2 + compiled_statements_len as i32 + compiled_cond_len as i32))],
-                      vec!["get@nil".to_string()]
-                    ].concat()
+                        compiled_cond,
+                        vec![format!("jumpunless@{}", compiled_statements_len + 1)],
+                        compiled_statements,
+                        vec![format!(
+                            "jump@{}",
+                            -(2 + compiled_statements_len as i32 + compiled_cond_len as i32)
+                        )],
+                        vec!["get@nil".to_string()],
+                    ]
+                    .concat()
                 }
-                ast => { // マッチしなかったシンボル or ベクタ
+                Ast::S(s) if s == "=".to_string() => {
+                    let variable_name = if let Ast::S(vn) = ast_vec.get(1).unwrap() {
+                        vn
+                    } else {
+                        panic!()
+                    };
+                    vec![
+                        compile(ast_vec[2].clone()),
+                        vec![format!("set@{}", variable_name)],
+                    ]
+                    .concat()
+                }
+                ast => {
+                    // マッチしなかったシンボル or ベクタ
                     let mut ast_vec_c = ast_vec.clone();
                     let args = ast_vec_c.drain(1..);
                     let args_len = args.len();
                     [
                         args.flat_map(compile).collect(),
                         compile(ast),
-                        vec![format!("send@{:?}", args_len)]
-                    ].concat()
+                        vec![format!("send@{:?}", args_len)],
+                    ]
+                    .concat()
                 }
             }
         }
