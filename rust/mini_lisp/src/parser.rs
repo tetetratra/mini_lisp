@@ -20,11 +20,11 @@ impl Ast {
             Ast::S(s) => {
                 formatted.push_str(format!("{}", s).as_str());
             }
-            Ast::A(pv) => {
+            Ast::A(ast_vec) => {
                 formatted.push_str(format!("\n{}(", indent).as_str());
-                for (i, p) in pv.into_iter().enumerate() {
-                    formatted.push_str(p.inspect(depth + 1).as_str());
-                    if i != pv.len() - 1 {
+                for (i, ast) in ast_vec.into_iter().enumerate() {
+                    formatted.push_str(ast.inspect(depth + 1).as_str());
+                    if i != ast_vec.len() - 1 {
                         formatted.push_str(" ");
                     };
                 }
