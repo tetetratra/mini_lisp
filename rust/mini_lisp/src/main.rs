@@ -14,5 +14,5 @@ fn main() {
     } else {
         parser::Ast::A(vec![])
     };
-    print!("{:?}", ast);
+    println!("{:?}", ast);
 }

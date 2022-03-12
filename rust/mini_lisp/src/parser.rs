@@ -8,33 +8,36 @@ pub enum Ast {
 }
 
 impl Ast {
-    fn inspect(&self, depth: i32) {
-        let mut indent = "".to_string();
-        for _ in 0..depth {
-            indent.push_str("  ");
-        }
+    fn inspect(&self, depth: usize) -> String {
+        let indent = vec!["  "]
+            .into_iter()
+            .cycle()
+            .take(depth)
+            .collect::<Vec<&str>>()
+            .join(" ");
+        let mut formatted = String::new();
         match self {
             Ast::S(s) => {
-                print!("{}", s);
+                formatted.push_str(format!("{}", s).as_str());
             }
             Ast::A(pv) => {
-                print!("\n{}(", indent);
+                formatted.push_str(format!("\n{}(", indent).as_str());
                 for (i, p) in pv.into_iter().enumerate() {
-                    p.inspect(depth + 1);
+                    formatted.push_str(p.inspect(depth + 1).as_str());
                     if i != pv.len() - 1 {
-                        print!(" ")
+                        formatted.push_str(" ");
                     };
                 }
-                print!(")");
+                formatted.push_str(")");
             }
         };
+        formatted
     }
 }
 
 impl fmt::Debug for Ast {
-    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
-        self.inspect(0);
-        Ok(())
+    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+        write!(dest, "{}", self.inspect(0))
     }
 }
 
@@ -50,8 +53,7 @@ pub fn parse(raw_code: String) -> Ast {
     let regex = Regex::new(r#"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|".+?""#).unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
 
-    let mut parsed: Vec<Ast> = vec![];
-    parsed.push(Ast::S(tokens.next().unwrap()));
+    let mut parsed: Vec<Ast> = vec![Ast::S(tokens.next().unwrap())];
     let tokens_rest: Vec<String> = tokens.collect();
 
     for token in tokens_rest {
