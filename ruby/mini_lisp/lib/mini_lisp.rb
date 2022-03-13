@@ -18,11 +18,3 @@ module MiniLisp
     Evaluator.exec(code_table)
   end
 end
-
-# bundle exec ruby -W0 lib/mini_lisp.rb ../../if.mlisp -g -d
-if $PROGRAM_NAME == __FILE__
-  $debug = !!ARGV.delete('-d')
-  $gc_every_time = !!ARGV.delete('-g')
-  src = File.open(ARGV.first).read
-  MiniLisp.run(src)
-end
