@@ -14,11 +14,13 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
             }
         }
         Ast::A(ast_vec) => {
-            let first = ast_vec[0].clone();
-            match first {
-                Ast::S(s) if s == "~".to_string() => ast_vec
-                    .clone()
-                    .drain(1..)
+            let mut ast_vec_iter = ast_vec.into_iter();
+
+            let first_ast = ast_vec_iter.next().unwrap();
+            let mut rest_asts = ast_vec_iter;
+
+            match first_ast {
+                Ast::S(s) if s == "~".to_string() => rest_asts
                     .flat_map(|a| {
                         let (c, next_code_table) = compile(a, code_table.clone());
                         code_table = next_code_table;
@@ -27,13 +29,13 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                     .collect(),
                 Ast::S(s) if s == "if".to_string() => {
                     let (if_compiled, code_table_if) =
-                        compile(ast_vec[1].clone(), code_table.clone());
+                        compile(rest_asts.next().unwrap(), code_table.clone());
                     code_table = code_table_if;
                     let (then_compiled, code_table_then) =
-                        compile(ast_vec[2].clone(), code_table.clone());
+                        compile(rest_asts.next().unwrap(), code_table.clone());
                     code_table = code_table_then;
                     let (else_compiled, code_table_else) =
-                        compile(ast_vec[3].clone(), code_table.clone());
+                        compile(rest_asts.next().unwrap(), code_table.clone());
                     code_table = code_table_else;
                     let else_compiled_len = else_compiled.len();
                     let then_compiled_len = then_compiled.len();
@@ -47,12 +49,12 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                     .concat()
                 }
                 Ast::S(s) if s == "while".to_string() => {
-                    let cond = ast_vec[1].clone();
+                    let cond = rest_asts.next().unwrap();
                     let (compiled_cond, code_table_cond) = compile(cond, code_table.clone());
                     code_table = code_table_cond;
                     let compiled_cond_len = compiled_cond.len();
 
-                    let statements: Vec<Ast> = ast_vec.clone().drain(2..).collect();
+                    let statements: Vec<Ast> = rest_asts.collect();
                     let compiled_statements: Vec<String> = statements
                         .into_iter()
                         .flat_map(|s| {
@@ -76,47 +78,50 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                     .concat()
                 }
                 Ast::S(s) if s == "=".to_string() => {
-                    let variable_name = if let Ast::S(vn) = ast_vec.get(1).unwrap() {
+                    let variable_name = if let Ast::S(vn) = rest_asts.next().unwrap() {
                         vn
                     } else {
                         panic!()
                     };
                     let (code_val, code_table_val) =
-                        compile(ast_vec[2].clone(), code_table.clone());
+                        compile(Ast::A(rest_asts.collect()), code_table.clone());
                     code_table = code_table_val;
                     vec![code_val, vec![format!("set@{}", variable_name)]].concat()
                 }
                 Ast::S(s) if s == "->".to_string() => {
-                    let args_ast = ast_vec[1].clone();
+                    let args_ast = rest_asts.next().unwrap();
                     let args: String = if let Ast::A(a) = args_ast {
-                        a.into_iter().map(|aa| {
-                            match aa {
+                        a.into_iter()
+                            .map(|aa| match aa {
                                 Ast::S(string) => string,
-                                Ast::A(_) => { panic!() }
-                            }
-                        }).collect::<Vec<String>>().join(",")
+                                Ast::A(_) => {
+                                    panic!()
+                                }
+                            })
+                            .collect::<Vec<String>>()
+                            .join(",")
                     } else {
                         panic!()
                     };
-                    let mut ast_vec_c = ast_vec.clone();
-                    let codes_ast = ast_vec_c.drain(2..);
-                    let new_code = codes_ast.flat_map(|c| {
-                        let (c, next_code_table) = compile(c, code_table.clone());
-                        code_table = next_code_table;
-                        c
-                    }).collect();
+                    let codes_ast = rest_asts;
+                    let new_code = codes_ast
+                        .flat_map(|c| {
+                            let (c, next_code_table) = compile(c, code_table.clone());
+                            code_table = next_code_table;
+                            c
+                        })
+                        .collect();
 
                     let closure_index = code_table.len();
                     code_table.push(new_code);
                     vec![format!("closure@{}@{}", closure_index, args)]
                 }
-                ast => {
-                    // マッチしなかったシンボル or ベクタ
-                    let mut ast_vec_c = ast_vec.clone();
-                    let args = ast_vec_c.drain(1..);
+                _ => {
+                    // (method ...) | ((...) ...)
+                    let args = rest_asts;
                     let args_len = args.len();
 
-                    let (code_ast, code_table_ast) = compile(ast, code_table.clone());
+                    let (code_ast, code_table_ast) = compile(first_ast, code_table.clone());
                     code_table = code_table_ast;
                     [
                         args.flat_map(|a| {
