@@ -9,12 +9,11 @@ pub enum Ast {
 
 impl Ast {
     fn inspect(&self, depth: usize) -> String {
-        let indent = vec!["  "]
-            .into_iter()
+        let indent = std::iter::repeat(" ")
             .cycle()
-            .take(depth)
+            .take(depth * 2)
             .collect::<Vec<&str>>()
-            .join(" ");
+            .join("");
         let mut formatted = String::new();
         match self {
             Ast::S(s) => {
@@ -44,11 +43,10 @@ impl fmt::Debug for Ast {
 pub fn parse(raw_code: String) -> Ast {
     let raw_code_without_comment = Regex::new(r"[#;].*")
         .unwrap()
-        .replace_all(raw_code.as_str(), "")
-        .into_owned();
+        .replace_all(raw_code.as_str(), "");
     let code = Regex::new(r"\s+")
         .unwrap()
-        .replace_all(raw_code_without_comment.as_str(), " ");
+        .replace_all(&raw_code_without_comment, " ");
 
     let regex = Regex::new(r#"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|".+?""#).unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
