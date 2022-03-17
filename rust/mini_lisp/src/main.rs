@@ -1,5 +1,5 @@
-mod parser;
 mod compiler;
+mod parser;
 
 use std::env;
 use std::fs;
@@ -7,16 +7,10 @@ use std::fs;
 fn main() {
     let filename = env::args().nth(1).unwrap();
     let raw_code = fs::read_to_string(&filename).unwrap();
-    println!("{}", &raw_code);
-    let ast = if let parser::Ast::A(v) = parser::parse(raw_code) {
-        let mut vc = v.clone();
-        vc.insert(0, parser::Ast::S("~".to_string()));
-        parser::Ast::A(vc)
-    } else {
-        parser::Ast::A(vec![])
-    };
+    let code = format!("(~\n{})", raw_code);
+    println!("{}", code);
+    let ast = parser::parse(code);
     println!("{:?}", ast);
-    let (first_bytecode, ref mut rest_bytecodes) = compiler::compile(ast, vec![]);
-    rest_bytecodes.push(first_bytecode);
-    println!("{:#?}", rest_bytecodes);
+    let bytecodes = compiler::compile(ast);
+    println!("{:#?}", bytecodes);
 }

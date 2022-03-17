@@ -75,5 +75,5 @@ pub fn parse(raw_code: String) -> Ast {
         };
         parsed.push(element);
     }
-    Ast::A(parsed)
+    parsed.pop().unwrap()
 }

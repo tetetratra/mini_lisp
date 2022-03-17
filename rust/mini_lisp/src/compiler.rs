@@ -1,7 +1,13 @@
 use super::parser::Ast;
 use regex::Regex;
 
-pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<String>>) {
+pub fn compile(ast: Ast) -> Vec<Vec<String>> {
+    let (first_bytecode, mut rest_bytecodes) = compile_r(ast, vec![]);
+    rest_bytecodes.push(first_bytecode);
+    rest_bytecodes
+}
+
+fn compile_r(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<String>>) {
     match ast {
         Ast::S(string) => {
             if Regex::new(r#"^-?\d+$"#).unwrap().is_match(string.as_str()) {
@@ -22,17 +28,17 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                 Ast::S(string) => match string.as_str() {
                     "~" => {
                         rest_asts.fold((vec![], code_table), |(memo_code, memo_code_table), ast| {
-                            let (code, new_code_table) = compile(ast, memo_code_table);
+                            let (code, new_code_table) = compile_r(ast, memo_code_table);
                             (vec![memo_code, code].concat(), new_code_table)
                         })
                     }
                     "if" => {
                         let (if_compiled, code_table) =
-                            compile(rest_asts.next().unwrap(), code_table);
+                            compile_r(rest_asts.next().unwrap(), code_table);
                         let (then_compiled, code_table) =
-                            compile(rest_asts.next().unwrap(), code_table);
+                            compile_r(rest_asts.next().unwrap(), code_table);
                         let (else_compiled, code_table) =
-                            compile(rest_asts.next().unwrap(), code_table);
+                            compile_r(rest_asts.next().unwrap(), code_table);
                         (
                             [
                                 if_compiled,
@@ -47,12 +53,12 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                     }
                     "while" => {
                         let (compiled_cond, code_table) =
-                            compile(rest_asts.next().unwrap(), code_table);
+                            compile_r(rest_asts.next().unwrap(), code_table);
                         let compiled_cond_len = compiled_cond.len();
                         let (compiled_statements, code_table) = rest_asts.fold(
                             (vec![], code_table),
                             |(memo_code, memo_code_table), ast| {
-                                let (code, new_code_table) = compile(ast, memo_code_table);
+                                let (code, new_code_table) = compile_r(ast, memo_code_table);
                                 (vec![memo_code, code].concat(), new_code_table)
                             },
                         );
@@ -76,7 +82,7 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                     "=" => {
                         if let Ast::S(variable_name) = rest_asts.next().unwrap() {
                             let (code_val, code_table) =
-                                compile(Ast::A(rest_asts.collect()), code_table);
+                                compile_r(rest_asts.next().unwrap(), code_table);
                             (
                                 vec![code_val, vec![format!("set@{}", variable_name)]].concat(),
                                 code_table,
@@ -100,7 +106,7 @@ pub fn compile(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<
                             let (new_code, code_table) = rest_asts.fold(
                                 (vec![], code_table),
                                 |(memo_code, memo_code_table), ast| {
-                                    let (new_code, code_table) = compile(ast, memo_code_table);
+                                    let (new_code, code_table) = compile_r(ast, memo_code_table);
                                     (vec![memo_code, new_code].concat(), code_table)
                                 },
                             );
@@ -136,10 +142,10 @@ fn compile_other(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Ve
             let rest_asts = ast_iter;
 
             let args_len = rest_asts.len();
-            let (code_ast, code_table) = compile(first_ast, code_table);
+            let (code_ast, code_table) = compile_r(first_ast, code_table);
             let (code, code_table) =
                 rest_asts.fold((vec![], code_table), |(memo_code, memo_code_table), ast| {
-                    let (new_code, code_table) = compile(ast, memo_code_table);
+                    let (new_code, code_table) = compile_r(ast, memo_code_table);
                     (vec![memo_code, new_code].concat(), code_table)
                 });
             (
