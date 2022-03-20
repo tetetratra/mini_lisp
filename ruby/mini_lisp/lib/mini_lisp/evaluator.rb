@@ -11,28 +11,7 @@ module MiniLisp
           {
             0 => StackFrame[
               [],
-              {
-                :nil => nil,
-                :nil? => Fn { args[0].nil? },
-                :true => true,
-                :false => false,
-                :cons => Fn { Cons[args[0], args[1]] },
-                :car => Fn { args[0].car },
-                :cdr => Fn { args[0].cdr },
-                :callcc => :callcc,
-                :gc => :gc,
-                :'+' => Fn { args.inject(:+) },
-                :'-' => Fn { args[0] - args[1..].inject(:+) },
-                :'==' => Fn { args[0] == args[1] },
-                :'!=' => Fn { args[0] != args[1] },
-                :'!' => Fn { !args[0] },
-                :p => Fn { p args.first },
-                :pp => Fn { pp args.first },
-                :puts => Fn { puts args.first; args.first },
-                :print => Fn { print args.first; args.first },
-                :sleep => Fn { sleep(args.first); args.first },
-                :stack_frames_size => Fn { vm.stack_frames.size },
-              },
+              Functions,
               0,
               nil,
               nil,
@@ -61,10 +40,10 @@ module MiniLisp
           line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]
           case line
           when /^int@(-?\d+)/
-            vm.current_stack_frame_stack_push($1.to_i)
+            vm.current_stack_frame_stack_push(Value::Num[$1.to_i])
               .current_stack_frame_line_num_add(1)
           when /^str@(.*)/
-            vm.current_stack_frame_stack_push($1)
+            vm.current_stack_frame_stack_push(Value::String[$1])
               .current_stack_frame_line_num_add(1)
           when /^set@(.+)/
             name = $1.to_sym
@@ -80,7 +59,7 @@ module MiniLisp
           when /^closure@(\d+)@([\w,]*)/
             function_num = $1.to_i
             args = $2.split(',').map(&:to_sym)
-            closure = Closure[
+            closure = Value::Closure[
               function_num,
               args,
               vm.stack_frame_num
@@ -91,14 +70,14 @@ module MiniLisp
             exec_send(vm, code_table, $1.to_i)
           when /^jumpif@(-?\d+)/
             cond = vm.current_stack_frame.stack.last
-            if cond
+            if !(cond in Value::False | Value::Nil)
               vm.current_stack_frame_line_num_add($1.to_i + 1)
             else
               vm.current_stack_frame_line_num_add(1)
             end
           when /^jumpunless@(-?\d+)/
             cond = vm.current_stack_frame.stack.last
-            if cond
+            if !(cond in Value::False | Value::Nil)
               vm.current_stack_frame_line_num_add(1)
             else
               vm.current_stack_frame_line_num_add($1.to_i + 1)
@@ -122,7 +101,7 @@ module MiniLisp
         }
         case method
         in :callcc
-          continuation = Continuation[
+          continuation = Value::Continuation[
             args_poped_vm
               .current_stack_frame_line_num_add(1)
           ]
@@ -149,7 +128,7 @@ module MiniLisp
           args_poped_vm
             .gc
             .current_stack_frame_line_num_add(1)
-        in Continuation => continuation
+        in Value::Continuation => continuation
           # continuation.vmの環境を現在の環境に差し替えている
           next_vm = VM[
             continuation.vm.stack_frame_num,
@@ -174,11 +153,11 @@ module MiniLisp
           print_code_table(next_vm, code_table) if $debug
           print_stack_frame(next_vm, code_table) if $debug
           next_vm
-        in Function => function
+        in Value::Function => function
           args_poped_vm
             .current_stack_frame_stack_push(function.(args, vm))
             .current_stack_frame_line_num_add(1)
-        in Closure => closure
+        in Value::Closure => closure
           new_stack_frame = StackFrame[
             [],
             closure.args.zip(args).to_h,
@@ -195,10 +174,6 @@ module MiniLisp
           print_code_table(next_vm, code_table) if $debug
           next_vm
         end
-      end
-
-      def Fn(&block)
-        Function.new(block)
       end
 
       def print_code_table(vm, code_table)

@@ -153,19 +153,21 @@ module MiniLisp
 
         (stack_frame.env.values + stack_frame.stack).each do |value|
           case value
-          in Closure => closure
+          in Value::Closure => closure
             sfn = closure.stack_frame_num
             unless keep[sfn]
               stack << sfn
               keep[sfn] = true
             end
-          in Continuation => continuation
+          in Value::Continuation => continuation
             continuation.vm.stack_frames.keys.each do |n|
               unless keep[n]
                 stack << n
                 keep[n] = true
               end
             end
+          in Value::Cons
+            # TODO
           in _ # do nothing
           end
         end
@@ -202,34 +204,6 @@ module MiniLisp
           raise "variable `#{name}` is not defined"
         end
       end
-    end
-  end
-
-  Function = Struct.new(:proc) do
-    def inspect
-      'Fn'
-    end
-
-    def call(args, vm)
-      Struct.new(:args, :vm).new(args, vm).instance_eval(&proc)
-    end
-  end
-
-  Cons = Struct.new(:car, :cdr) do
-    def inspect
-      "(#{car.inspect} . #{cdr.inspect})"
-    end
-  end
-
-  Closure = Struct.new(:function_num, :args, :stack_frame_num) do
-    def inspect
-      "->#{stack_frame_num}[#{function_num}](#{args.join(',')})".blue
-    end
-  end
-
-  Continuation = Struct.new(:vm) do
-    def inspect
-      "Cont#{vm.stack_frames.keys.to_set.inspect[/{.*}/]}".green
     end
   end
 end
