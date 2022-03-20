@@ -1,14 +1,14 @@
 module MiniLisp
   def self.Fn(&block)
-    Value::Function.new(block)
+    Value::Function[block]
   end
 
   Functions = {
-    :nil => Value::Nil.new,
-    :nil? => Fn { args[0] == Value::Nil.new ? Value::True.new : Value::False.new },
-    :true => Value::True.new,
-    :false => Value::False.new,
-    :list => Fn { args.reverse.reduce(Value::Nil.new) { |cons, a| Value::Cons[a, cons] } },
+    :nil => Value::Nil[],
+    :nil? => Fn { args[0] == Value::Nil[] ? Value::True[] : Value::False[] },
+    :true => Value::True[],
+    :false => Value::False[],
+    :list => Fn { args.reverse.reduce(Value::Nil[]) { |cons, a| Value::Cons[a, cons] } },
     :cons => Fn { Value::Cons[args[0], args[1]] },
     :car => Fn { args[0].car },
     :cdr => Fn { args[0].cdr },
@@ -16,9 +16,9 @@ module MiniLisp
     :gc => :gc,
     :'+' => Fn { Value::Num[args[0].to_ruby + args[1].to_ruby] },
     :'-' => Fn { Value::Num[args[0].to_ruby - args[1].to_ruby] },
-    :'==' => Fn { args[0].to_ruby == args[1].to_ruby ? Value::True.new : Value::False.new },
-    :'!=' => Fn { args[0].to_ruby != args[1].to_ruby ? Value::True.new : Value::False.new },
-    :'!' => Fn { args[0].to_ruby ? Value::False.new : Value::True.new },
+    :'==' => Fn { args[0].to_ruby == args[1].to_ruby ? Value::True[] : Value::False[] },
+    :'!=' => Fn { args[0].to_ruby != args[1].to_ruby ? Value::True[] : Value::False[] },
+    :'!' => Fn { args[0].to_ruby ? Value::False[] : Value::True[] },
     :p => Fn { p args.first },
     :pp => Fn { pp args.first },
     # :puts => Fn { puts args.first; args.first },

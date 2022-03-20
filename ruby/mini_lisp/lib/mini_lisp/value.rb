@@ -4,55 +4,33 @@ using Rainbow
 
 module MiniLisp
   module Value
-    class Nil
-      def inspect
-        'nil'.magenta
-      end
-      def to_ruby
-        nil
-      end
+    Nil = Struct.new(:_) do
+      def inspect = 'nil'.magenta
+      def to_ruby = nil
     end
 
-    class True
-      def inspect
-        'true'.magenta
-      end
-      def to_ruby
-        true
-      end
+    True = Struct.new(:_) do
+      def inspect = 'true'.magenta
+      def to_ruby = true
     end
 
-    class False
-      def inspect
-        'false'.magenta
-      end
-      def to_ruby
-        false
-      end
+    False = Struct.new(:_) do
+      def inspect = 'false'.magenta
+      def to_ruby = false
     end
 
     Num = Struct.new(:v) do
-      def inspect
-        v.inspect.magenta
-      end
-      def to_ruby
-        v
-      end
+      def inspect = v.inspect.magenta
+      def to_ruby = v
     end
 
     String = Struct.new(:v) do
-      def inspect
-        v.inspect.cyan
-      end
-      def to_ruby
-        v
-      end
+      def inspect = v.inspect.cyan
+      def to_ruby = v
     end
 
     Function = Struct.new(:proc) do
-      def inspect
-        'Fn'.red
-      end
+      def inspect = 'Fn'.red
 
       def call(args, vm)
         Struct.new(:args, :vm).new(args, vm).instance_eval(&proc)
