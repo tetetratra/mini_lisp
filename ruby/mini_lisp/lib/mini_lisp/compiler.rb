@@ -28,6 +28,26 @@ module MiniLisp
               "jump@#{then_compiled.size}",
               *then_compiled,
             ]
+          in :'||'
+            [
+              *compile_r.(exp[1]),
+              *exp[2..].map(&compile_r).flat_map { |e_compiled|
+                [
+                  "jumpif@#{e_compiled.size}",
+                  *e_compiled
+                ]
+              }
+            ]
+          in :'&&'
+            [
+              *compile_r.(exp[1]),
+              *exp[2..].map(&compile_r).flat_map { |e_compiled|
+                [
+                  "jumpunless@#{e_compiled.size}",
+                  *e_compiled
+                ]
+              }
+            ]
           in :while
             cond = exp[1]
             statements = exp[2..]
