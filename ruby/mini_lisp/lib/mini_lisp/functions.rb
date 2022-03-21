@@ -20,9 +20,6 @@ module MiniLisp
     :'!=' => Fn { args[0].to_ruby != args[1].to_ruby ? Value::True[] : Value::False[] },
     :'!' => Fn { args[0].to_ruby ? Value::False[] : Value::True[] },
     :p => Fn { p args.first },
-    :pp => Fn { pp args.first },
-    # :puts => Fn { puts args.first; args.first },
-    # :print => Fn { print args.first; args.first },
     :sleep => Fn { sleep(args.first); args.first },
     :stack_frames_size => Fn { vm.stack_frames.size },
   }

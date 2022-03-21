@@ -39,7 +39,7 @@ module MiniLisp
 
     Cons = Struct.new(:head, :rest) do
       def inspect
-        '('.yellow + head.inspect + ' ' + rest.inspect + ')'.yellow
+        '('.yellow + head.inspect + ' . ' + rest.inspect + ')'.yellow
       end
     end
 
