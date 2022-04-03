@@ -1,19 +1,8 @@
 module MiniLisp
   class Parser
     def self.parse(str)
-      regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|\".+?\"|\'.+?\'/
-      tokens = str.gsub(/[#;].*/, '').gsub(/\s+/, ' ').scan(regex).map do |token|
-        case token
-        when /^-?\d+$/
-          token.to_i
-        when /^'(.*)'$/
-          $1
-        when /^"(.*)"$/
-          $1
-        else
-          token.to_sym
-        end
-      end
+      regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!']+|\".+?\"/
+      tokens = str.gsub(/[#;].*/, '').gsub(/\s+/, ' ').scan(regex).map(&:to_sym)
       parsed = [tokens.shift]
       until tokens.empty?
         parsed <<

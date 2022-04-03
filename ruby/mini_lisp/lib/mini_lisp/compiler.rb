@@ -4,14 +4,20 @@ module MiniLisp
       code_table = [ nil ] # rootのために一時的にnilを置いておく
       compile_r = -> (exp) do
         case exp
-        in String => str
-          [ "str@#{str}" ]
-        in Integer => i
-          [ "int@#{i}" ]
-        in Symbol => s
-          [ "get@#{s}" ]
+        in Symbol
+          case exp.to_s
+          when /^-?\d+$/
+            [ "int@#{exp}" ]
+          when /^"(.*)"$/
+            [ "str@#{$1}" ]
+          when /^'(.*)$/
+            [ "quote@#{$1}" ]
+          else
+            [ "get@#{exp}" ]
+          end
         in Array
           case exp.first
+          # in :macro
           in :~
             exp[1..].map { |e| compile_r.(e) }
           in :if
