@@ -7,13 +7,13 @@ module MiniLisp
         in Symbol
           case exp.to_s
           when /^-?\d+$/
-            [ "int@#{exp}" ]
+            [ "int #{exp}" ]
           when /^"(.*)"$/
-            [ "str@#{$1}" ]
+            [ "str #{$1}" ]
           when /^'(.*)$/
-            [ "quote@#{$1}" ]
+            [ "quote #{$1}" ]
           else
-            [ "get@#{exp}" ]
+            [ "get #{exp}" ]
           end
         in Array
           case exp.first
@@ -29,9 +29,9 @@ module MiniLisp
             else_compiled = compile_r.(else_exp)
             [
               *if_compiled,
-              "jumpif@#{else_compiled.size + 1}",
+              "jumpif #{else_compiled.size + 1}",
               *else_compiled,
-              "jump@#{then_compiled.size}",
+              "jump #{then_compiled.size}",
               *then_compiled,
             ]
           in :'||'
@@ -39,7 +39,7 @@ module MiniLisp
               *compile_r.(exp[1]),
               *exp[2..].map(&compile_r).flat_map { |e_compiled|
                 [
-                  "jumpif@#{e_compiled.size}",
+                  "jumpif #{e_compiled.size}",
                   *e_compiled
                 ]
               }
@@ -49,7 +49,7 @@ module MiniLisp
               *compile_r.(exp[1]),
               *exp[2..].map(&compile_r).flat_map { |e_compiled|
                 [
-                  "jumpunless@#{e_compiled.size}",
+                  "jumpunless #{e_compiled.size}",
                   *e_compiled
                 ]
               }
@@ -61,15 +61,15 @@ module MiniLisp
             compiled_statements = statements.flat_map { |s| compile_r.(s) }
             [
               *compiled_cond,
-              "jumpunless@#{compiled_statements.size + 1}",
+              "jumpunless #{compiled_statements.size + 1}",
               *compiled_statements,
-              "jump@#{-(2 + compiled_statements.size + compiled_cond.size)}",
-              'get@nil'
+              "jump #{-(2 + compiled_statements.size + compiled_cond.size)}",
+              'get nil'
             ]
           in :'='
             raise "variable `#{exp[1]}` in `#{exp}` is not symbol" unless Symbol === exp[1]
 
-            [*compile_r.(exp[2]), "set@#{exp[1]}"]
+            [*compile_r.(exp[2]), "set #{exp[1]}"]
           in :'->'
             args = exp[1]
             codes = exp[2..]
@@ -78,14 +78,14 @@ module MiniLisp
             codes_index = code_table.size
             code_table[codes_index] = nil # TODO 改善したい
             code_table[codes_index] = codes.flat_map { |code| compile_r.(code) }
-            [ "closure@#{codes_index}@#{args.join(',')}" ]
+            [ "closure #{codes_index} #{args.join(',')}" ]
           in Symbol | Array
             method = exp.first
             args = exp[1..]
             [
               *args.map { |a| compile_r.(a) },
               *compile_r.(method),
-              "send@#{args.size}"
+              "send #{args.size}"
             ]
           end
         end.flatten(1)

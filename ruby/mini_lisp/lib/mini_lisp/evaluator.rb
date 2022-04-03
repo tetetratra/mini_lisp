@@ -39,24 +39,24 @@ module MiniLisp
 
           line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]
           case line
-          when /^int@(-?\d+)/
+          when /^int (-?\d+)/
             vm.current_stack_frame_stack_push(Value::Num[$1.to_i])
               .current_stack_frame_line_num_add(1)
-          when /^str@(.*)/
+          when /^str (.*)/
             vm.current_stack_frame_stack_push(Value::String[$1])
               .current_stack_frame_line_num_add(1)
-          when /^set@(.+)/
+          when /^set (.+)/
             name = $1.to_sym
             value = vm.current_stack_frame.stack.last
             vm.current_stack_frame_update_env(name, value)
               .current_stack_frame_line_num_add(1)
-          when /^get@(.+)/
+          when /^get (.+)/
             var_name = $1.to_sym
             value = vm.current_stack_frame_find_env(var_name)
 
             vm.current_stack_frame_stack_push(value)
               .current_stack_frame_line_num_add(1)
-          when /^closure@(\d+)@([\w,]*)/
+          when /^closure (\d+) ([\w,]*)/
             function_num = $1.to_i
             args = $2.split(',').map(&:to_sym)
             closure = Value::Closure[
@@ -66,23 +66,23 @@ module MiniLisp
             ]
             vm.current_stack_frame_stack_push(closure)
               .current_stack_frame_line_num_add(1)
-          when /^send@(\d+)/
+          when /^send (\d+)/
             exec_send(vm, code_table, $1.to_i)
-          when /^jumpif@(-?\d+)/
+          when /^jumpif (-?\d+)/
             cond = vm.current_stack_frame.stack.last
             if !(cond in Value::False | Value::Nil)
               vm.current_stack_frame_line_num_add($1.to_i + 1)
             else
               vm.current_stack_frame_line_num_add(1)
             end
-          when /^jumpunless@(-?\d+)/
+          when /^jumpunless (-?\d+)/
             cond = vm.current_stack_frame.stack.last
             if !(cond in Value::False | Value::Nil)
               vm.current_stack_frame_line_num_add(1)
             else
               vm.current_stack_frame_line_num_add($1.to_i + 1)
             end
-          when /^jump@(-?\d+)/
+          when /^jump (-?\d+)/
             vm.current_stack_frame_line_num_add($1.to_i + 1)
           else
             raise "command `#{line.inspect}` is not found"
