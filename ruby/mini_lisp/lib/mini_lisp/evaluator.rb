@@ -15,7 +15,7 @@ module MiniLisp
               0,
               nil,
               nil,
-              0
+              code_table.size - 1
             ].freeze
           }
         ].freeze

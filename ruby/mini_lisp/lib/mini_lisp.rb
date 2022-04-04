@@ -12,10 +12,9 @@ module MiniLisp
   class Error < StandardError; end
 
   def self.run(src)
-    puts src if $debug
-    parsed = Parser.parse(src)
-    pp parsed if $debug
-    code_table = Compiler.compile([:~, *parsed])
+    parsed = ['~', *Parser.parse(src)]
+    puts Parser.format(parsed) if $debug
+    code_table = Compiler.compile(parsed)
     pp code_table if $debug
     Evaluator.exec(code_table)
   end
