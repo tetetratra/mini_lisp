@@ -1,0 +1,6 @@
+(= increment (-> (init)
+  (-> () (= init (+ init 1)))))
+(= inc (increment 10))
+(p (inc))
+(p (inc))
+(p (inc))

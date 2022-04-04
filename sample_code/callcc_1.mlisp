@@ -1,0 +1,12 @@
+(= x 5)
+(= cnt nil)
+
+(callcc (-> (continuation)
+  (= cnt continuation)))
+
+(= x (+ x -1))
+(p x)
+
+(if (== x 0)
+  (p "finish")
+  (cnt))

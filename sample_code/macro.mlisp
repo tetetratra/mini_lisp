@@ -1,0 +1,3 @@
+(macro m e
+  (cons '* (cons e (cons e nil))))
+

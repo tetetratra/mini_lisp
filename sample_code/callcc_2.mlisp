@@ -1,0 +1,12 @@
+(= function (-> (raise)
+  (p "before raise")
+  (raise "throw error")
+  (p "after raise")))
+
+(= error_message (callcc (-> (raise)
+  (p "before call function")
+  (function raise)
+  (p "after call function"))))
+
+(p error_message)
+
