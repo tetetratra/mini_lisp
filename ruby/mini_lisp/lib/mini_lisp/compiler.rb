@@ -32,10 +32,14 @@ module MiniLisp
               code_table,
               { **macro_table, macro_name => macro_body }
             ]
+          when 'q'
+            raise '`q` take only one argument.' unless args.size == 1
+
+            compile_quote(args.first, code_table, macro_table, false)
           when 'qq'
             raise '`qq` take only one argument.' unless args.size == 1
 
-            compile_quote(args.first, code_table, macro_table)
+            compile_quote(args.first, code_table, macro_table, true)
           when 'uq'
             raise '`uq` must be inside `qq`.'
           when '~'
@@ -82,10 +86,11 @@ module MiniLisp
               new_macro_table
             ]
           when macro_table.method(:key?)
-            macro = macro_table[method]
-
             puts "\nexpanding `#{method}` macro." if $debug
-            macro_code_table = Compiler.compile([macro, *args])
+            macro_code_table = Compiler.compile([
+              macro_table[method],
+              *args.map { |a| ['qq', a] }
+            ])
             macro_result = Evaluator.exec(macro_code_table)
             puts "expanded to #{macro_result.inspect}.\n" if $debug
 
@@ -108,7 +113,7 @@ module MiniLisp
         end.tap { raise 'compiler bug!' if _1.nil? }
       end
 
-      def compile_quote(ast, code_table, macro_table)
+      def compile_quote(ast, code_table, macro_table, quasiquote)
         case ast
         when String
           case ast
@@ -122,14 +127,13 @@ module MiniLisp
         when Array
           method, *args = ast
           case method
-          when 'uq'
+          in 'uq' if quasiquote
             raise '`uq` take only one argument.' unless args.size == 1
 
             compile_r(args.first, code_table, macro_table)
-          # when 'uqs'
           else
             ast.reduce([[], code_table, macro_table]) do |(mc, mct, mmt), a|
-              c, ct, mt = compile_quote(a, mct, mmt)
+              c, ct, mt = compile_quote(a, mct, mmt, quasiquote)
               [[*mc, *c], ct, mt]
             end => [new_code, new_code_table, new_macro_table]
             [
