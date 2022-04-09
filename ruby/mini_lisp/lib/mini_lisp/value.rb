@@ -4,19 +4,22 @@ using Rainbow
 
 module MiniLisp
   module Value
-    Nil = Struct.new(:_) do
+    Nil = Object.new
+    class << Nil
       def inspect = '()'.yellow
       def to_ruby = []
       def to_ast = []
     end
 
-    True = Struct.new(:_) do
+    True = Object.new
+    class << True
       def inspect = 'true'.magenta
       def to_ruby = true
       def to_ast = 'true'
     end
 
-    False = Struct.new(:_) do
+    False = Object.new
+    class << False
       def inspect = 'false'.magenta
       def to_ruby = false
       def to_ast = 'false'
