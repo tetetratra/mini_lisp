@@ -26,7 +26,7 @@ module MiniLisp
           if vm.current_stack_frame_finish?(code_table)
             print_stack_frame(vm, code_table) if $debug
             if vm.current_stack_frame.call_parent_num.nil?
-              break
+              break vm.current_stack_frame.stack.last
             else
               next_vm = vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
                      .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)

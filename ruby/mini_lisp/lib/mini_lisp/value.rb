@@ -4,34 +4,40 @@ using Rainbow
 
 module MiniLisp
   module Value
-    Nil = Struct.new(:_) do # 即値はObjectのほうがいいかも
-      def inspect = 'nil'.magenta
-      def to_ruby = nil
+    Nil = Struct.new(:_) do
+      def inspect = '()'.yellow
+      def to_ruby = []
+      def to_ast = []
     end
 
     True = Struct.new(:_) do
       def inspect = 'true'.magenta
       def to_ruby = true
+      def to_ast = 'true'
     end
 
     False = Struct.new(:_) do
       def inspect = 'false'.magenta
       def to_ruby = false
+      def to_ast = 'false'
     end
 
     Num = Struct.new(:v) do
       def inspect = v.inspect.magenta
       def to_ruby = v
+      def to_ast = v.to_s
     end
 
     String = Struct.new(:v) do
       def inspect = v.inspect.cyan
       def to_ruby = v
+      def to_ast = %Q("#{v}")
     end
 
     Symbol = Struct.new(:v) do
       def inspect = v.magenta
       def to_ruby = v
+      def to_ast = v
     end
 
     Function = Struct.new(:proc) do
@@ -45,6 +51,10 @@ module MiniLisp
     Cons = Struct.new(:head, :rest) do
       def inspect
         '('.yellow + head.inspect + ' . ' + rest.inspect + ')'.yellow
+      end
+
+      def to_ast
+        [head.to_ast, *rest.to_ast]
       end
     end
 

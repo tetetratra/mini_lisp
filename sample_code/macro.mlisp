@@ -1,3 +1,13 @@
-(macro m e
-  (cons '* (cons e (cons e nil))))
+(macro nil! (-> (var_name)
+  (qq (= (uq var_name) nil))))
+
+(nil! (qq a))
+(p a)
+
+(macro ppp (-> (n)
+  (qq (~
+    (p (uq n))
+    (p (uq n))
+    (p (uq n))))))
+(ppp 10)
 
