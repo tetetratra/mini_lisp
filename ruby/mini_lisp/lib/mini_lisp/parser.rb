@@ -2,7 +2,7 @@ module MiniLisp
   class Parser
     class << self
       def parse(str)
-        regex = /\(|\)|[\w\d\-+=*%_@^~<>?$&|!']+|\".+?\"/
+        regex = /\(|\)|[\w\d\-+=*%_^~<>?$&|!@`',]+|\".+?\"/
         tokens = str.gsub(/[#;].*/, '').gsub(/\s+/, ' ').scan(regex)
         parsed = [tokens.shift]
         until tokens.empty?

@@ -56,6 +56,9 @@ module MiniLisp
 
             vm.current_stack_frame_stack_push(value)
               .current_stack_frame_line_num_add(1)
+          when /^symbol (.+)/
+            vm.current_stack_frame_stack_push(Value::Symbol[$1])
+              .current_stack_frame_line_num_add(1)
           when /^closure (\d+) ([\w,]*)/
             function_num = $1.to_i
             args = $2.split(',').map(&:to_sym)

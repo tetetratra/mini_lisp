@@ -4,7 +4,7 @@ using Rainbow
 
 module MiniLisp
   module Value
-    Nil = Struct.new(:_) do
+    Nil = Struct.new(:_) do # 即値はObjectのほうがいいかも
       def inspect = 'nil'.magenta
       def to_ruby = nil
     end
@@ -26,6 +26,11 @@ module MiniLisp
 
     String = Struct.new(:v) do
       def inspect = v.inspect.cyan
+      def to_ruby = v
+    end
+
+    Symbol = Struct.new(:v) do
+      def inspect = v.magenta
       def to_ruby = v
     end
 
