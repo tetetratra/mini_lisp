@@ -14,5 +14,28 @@
 (macro while (-> (cond body)
   `(~
     (= _loop (-> () (~ ,body (if ,cond (_loop) ()))))
-    (_loop)
-  )))
+    (_loop))))
+
+(macro or (-> (left right)
+  `(if ,left ,left ,right)))
+
+(macro and (-> (left right)
+  `(if ,left ,right ,left)))
+
+(= len (-> (l)
+  (if (nil? l)
+    0
+    (+ 1 (len (cdr l))))))
+
+(= reverse (-> (l)
+  (reverse_r l ())))
+(= reverse_r (-> (l0 l1)
+  (if (nil? l0)
+      l1
+      (reverse_r (cdr l0) (cons (car l0) l1)))))
+
+(= map (-> (f l)
+  (if (nil? l)
+    ()
+    (cons (f (car l)) (map f (cdr l))))))
+
