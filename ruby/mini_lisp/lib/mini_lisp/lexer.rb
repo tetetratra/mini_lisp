@@ -2,7 +2,7 @@ module MiniLisp
   module Lexer
     class << self
       def tokenize(src)
-        regex = /\(|\)|,|`|'|\".+?\"|[\w\d\-+=*%_^~<>?$&|!@]+/
+        regex = /\(|\)|,|`|'|#t|#f|\".+?\"|[\w\d\-+=*%_^~<>?$&|!@]+/
         tokens = src.gsub(/;.*/, '').gsub(/\s+/, ' ').scan(regex)
         tokens.map do |token|
           case token
@@ -16,6 +16,10 @@ module MiniLisp
             Token::QuasiQuote
           when ','
             Token::UnQuote
+          when '#t'
+            Token::True
+          when '#f'
+            Token::False
           when /^(-?\d+)$/
             Token::Integer[$1.to_i]
           when /^"(.*)"$/
@@ -51,6 +55,16 @@ module MiniLisp
       UnQuote = Object.new
       class << UnQuote
         def inspect = ','
+      end
+
+      True = Object.new
+      class << True
+        def inspect = '#t'
+      end
+
+      False = Object.new
+      class << False
+        def inspect = '#f'
       end
 
       Integer = Struct.new(:v) do

@@ -17,14 +17,14 @@ module MiniLisp
     class << True
       def inspect = 'true'.magenta
       def to_ruby = true
-      def to_ast = Token::Symbol['true']
+      def to_ast = Token::True
     end
 
     False = Object.new
     class << False
       def inspect = 'false'.magenta
       def to_ruby = false
-      def to_ast = Token::Symbol['false']
+      def to_ast = Token::False
     end
 
     Num = Struct.new(:v) do

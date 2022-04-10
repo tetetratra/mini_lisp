@@ -12,6 +12,10 @@ module MiniLisp
 
       def compile_r(ast, code_table, macro_table)
         case ast
+        in Token::True
+          [ ['true'], code_table, macro_table]
+        in Token::False
+          [ ['false'], code_table, macro_table]
         in Token::Integer
           [ ["int #{ast.v}"], code_table, macro_table]
         in Token::String
@@ -135,6 +139,10 @@ module MiniLisp
 
       def compile_quote(ast, code_table, macro_table, quasiquote)
         case ast
+        in Token::True
+          [['true'], code_table, macro_table]
+        in Token::False
+          [['false'], code_table, macro_table]
         in Token::Integer
           [["int #{ast.v}"], code_table, macro_table]
         in Token::String

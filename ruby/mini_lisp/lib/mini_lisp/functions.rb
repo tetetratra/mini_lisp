@@ -4,8 +4,6 @@ module MiniLisp
   end
 
   Functions = {
-    :true => Value::True,
-    :false => Value::False,
     :nil? => Fn { args[0] == Value::Nil ? Value::True : Value::False },
     :list => Fn { args.reverse.reduce(Value::Nil) { |cons, a| Value::Cons[a, cons] } },
     :cons => Fn { Value::Cons[args[0], args[1]] },
