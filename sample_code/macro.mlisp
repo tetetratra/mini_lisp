@@ -1,5 +1,5 @@
 (macro nil! (-> (var_name)
-  (qq (= (uq var_name) nil))))
+  (qq (= (uq var_name) ()))))
 
 (nil! a)
 (p a)

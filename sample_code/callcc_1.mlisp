@@ -1,5 +1,5 @@
 (= x 5)
-(= cnt nil)
+(= cnt ())
 
 (callcc (-> (continuation)
   (= cnt continuation)))

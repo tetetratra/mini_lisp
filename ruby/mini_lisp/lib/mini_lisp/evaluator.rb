@@ -39,6 +39,15 @@ module MiniLisp
 
           line = code_table[vm.current_stack_frame.code_table_num][vm.current_stack_frame.line_num]
           case line
+          when 'nil'
+            vm.current_stack_frame_stack_push(Value::Nil)
+              .current_stack_frame_line_num_add(1)
+          when 'true'
+            vm.current_stack_frame_stack_push(Value::True)
+              .current_stack_frame_line_num_add(1)
+          when 'false'
+            vm.current_stack_frame_stack_push(Value::False)
+              .current_stack_frame_line_num_add(1)
           when /^int (-?\d+)/
             vm.current_stack_frame_stack_push(Value::Num[$1.to_i])
               .current_stack_frame_line_num_add(1)

@@ -4,7 +4,6 @@ module MiniLisp
   end
 
   Functions = {
-    :nil => Value::Nil,
     :true => Value::True,
     :false => Value::False,
     :nil? => Fn { args[0] == Value::Nil ? Value::True : Value::False },

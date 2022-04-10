@@ -18,6 +18,8 @@ module MiniLisp
           [ ["str #{ast.v}"], code_table, macro_table]
         in Token::Symbol
           [ ["get #{ast.v}"], code_table, macro_table]
+        in Array if ast.empty?
+          [ ['nil'], code_table, macro_table ]
         in Array
           method, *args = ast
           case method
@@ -133,6 +135,14 @@ module MiniLisp
 
       def compile_quote(ast, code_table, macro_table, quasiquote)
         case ast
+        in Token::Integer
+          [["int #{ast.v}"], code_table, macro_table]
+        in Token::String
+          [["str #{ast.v}"], code_table, macro_table]
+        in Token::Symbol
+          [["symbol #{ast.v}"], code_table, macro_table]
+        in Array if ast.empty?
+          [['nil'], code_table, macro_table]
         in Array
           method, *args = ast
           case method
@@ -155,12 +165,6 @@ module MiniLisp
               new_macro_table
             ]
           end
-        in Token::Integer
-          [["int #{ast.v}"], code_table, macro_table]
-        in Token::String
-          [["str #{ast.v}"], code_table, macro_table]
-        in Token::Symbol
-          [["symbol #{ast.v}"], code_table, macro_table]
         end
       end
     end
