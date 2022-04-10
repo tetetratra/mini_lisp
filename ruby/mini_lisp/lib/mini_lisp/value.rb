@@ -4,6 +4,8 @@ using Rainbow
 
 module MiniLisp
   module Value
+    include Lexer
+
     Nil = Object.new
     class << Nil
       def inspect = '()'.yellow
@@ -15,32 +17,32 @@ module MiniLisp
     class << True
       def inspect = 'true'.magenta
       def to_ruby = true
-      def to_ast = 'true'
+      def to_ast = Token::Symbol['true']
     end
 
     False = Object.new
     class << False
       def inspect = 'false'.magenta
       def to_ruby = false
-      def to_ast = 'false'
+      def to_ast = Token::Symbol['false']
     end
 
     Num = Struct.new(:v) do
       def inspect = v.inspect.magenta
       def to_ruby = v
-      def to_ast = v.to_s
+      def to_ast = Token::Integer[v]
     end
 
     String = Struct.new(:v) do
       def inspect = v.inspect.cyan
       def to_ruby = v
-      def to_ast = %Q("#{v}")
+      def to_ast = Token::String[v]
     end
 
     Symbol = Struct.new(:v) do
       def inspect = v.magenta
       def to_ruby = v
-      def to_ast = v
+      def to_ast = Token::Symbol[v]
     end
 
     Function = Struct.new(:proc) do

@@ -1,16 +1,17 @@
 module MiniLisp
-  class Parser
+  module Parser
     class << self
-      def parse(str)
-        regex = /\(|\)|[\w\d\-+=*%_^~<>?$&|!@`',]+|\".+?\"/
-        tokens = str.gsub(/[#;].*/, '').gsub(/\s+/, ' ').scan(regex)
+      include Lexer::Token
+
+      def parse(tokens)
+        tokens = tokens.dup
         parsed = [tokens.shift]
         until tokens.empty?
           parsed <<
             case s = tokens.shift
-            when ')'
-              poped = [')']
-              until poped in ['(', *rest, ')']
+            when ParenEnd
+              poped = [s]
+              until poped in [ParenBegin, *rest, ParenEnd]
                 poped = [parsed.pop, *poped]
               end
               poped[1..-2]
@@ -18,7 +19,7 @@ module MiniLisp
               s
             end
         end
-        unless (['(', ')'] & parsed.flatten).empty?
+        unless ([ParenBegin, ParenEnd] & parsed.flatten).empty?
           puts "Parse error:\n`#{str.chomp}` is not valid code"
           exit
         end
@@ -31,8 +32,8 @@ module MiniLisp
           "\n" +
             '  ' * depth + '(' +
             parsed.map { |p| format(p, depth + 1) }.join(' ') + ')'
-        in String
-          parsed
+        else
+          parsed.inspect
         end
       end
     end
