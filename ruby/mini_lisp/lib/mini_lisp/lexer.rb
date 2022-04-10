@@ -1,3 +1,6 @@
+require 'rainbow/refinement'
+using Rainbow
+
 module MiniLisp
   module Lexer
     class << self
@@ -34,49 +37,49 @@ module MiniLisp
     module Token
       ParenBegin = Object.new
       class << ParenBegin
-        def inspect = '('
+        def inspect = '('.magenta
       end
 
       ParenEnd = Object.new
       class << ParenEnd
-        def inspect = ')'
+        def inspect = ')'.magenta
       end
 
       Quote = Object.new
       class << Quote
-        def inspect = "'"
+        def inspect = "'".magenta
       end
 
       QuasiQuote = Object.new
       class << QuasiQuote
-        def inspect = '`'
+        def inspect = '`'.magenta
       end
 
       UnQuote = Object.new
       class << UnQuote
-        def inspect = ','
+        def inspect = ','.magenta
       end
 
       True = Object.new
       class << True
-        def inspect = '#t'
+        def inspect = '#t'.magenta
       end
 
       False = Object.new
       class << False
-        def inspect = '#f'
+        def inspect = '#f'.magenta
       end
 
       Integer = Struct.new(:v) do
-        def inspect = v
+        def inspect = v.to_s.magenta
       end
 
       String = Struct.new(:v) do
-        def inspect = %Q("#{v}")
+        def inspect = %Q("#{v}").magenta
       end
 
       Symbol = Struct.new(:v) do
-        def inspect = v
+        def inspect = v.to_s.magenta
       end
     end
   end

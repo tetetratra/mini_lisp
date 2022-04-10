@@ -1,27 +1,53 @@
 module MiniLisp
   module Parser
     class << self
-      include Lexer::Token
+      include Lexer
 
       def parse(tokens)
         tokens = tokens.dup
         parsed = [tokens.shift]
+        q_cnt = 0
         until tokens.empty?
-          parsed <<
-            case s = tokens.shift
-            when ParenEnd
-              poped = [s]
-              until poped in [ParenBegin, *rest, ParenEnd]
-                poped = [parsed.pop, *poped]
-              end
-              poped[1..-2]
-            else
-              s
+          case s = tokens.shift
+          when Token::ParenEnd
+            poped = [s]
+            until poped in [Token::ParenBegin, *rest, Token::ParenEnd]
+              poped.unshift(parsed.pop)
             end
+            poped = poped[1..-2]
+            case parsed.last
+            when Token::Quote
+              parsed.pop
+              parsed << [Token::Symbol['q'], poped]
+            when Token::QuasiQuote
+              parsed.pop
+              parsed << [Token::Symbol['qq'], poped]
+            when Token::UnQuote
+              parsed.pop
+              parsed << [Token::Symbol['uq'], poped]
+            else
+              parsed << poped
+            end
+          when Token::ParenBegin
+            parsed << s
+          else
+            case parsed.last
+            when Token::Quote
+              parsed.pop
+              parsed << [Token::Symbol['q'], s]
+            when Token::QuasiQuote
+              parsed.pop
+              parsed << [Token::Symbol['qq'], s]
+            when Token::UnQuote
+              parsed.pop
+              parsed << [Token::Symbol['uq'], s]
+            else
+              parsed << s
+            end
+          end
         end
-        unless ([ParenBegin, ParenEnd] & parsed.flatten).empty?
-          puts "Parse error:\n`#{str.chomp}` is not valid code"
-          exit
+        unless ([Token::ParenBegin, Token::ParenEnd] & parsed.flatten).empty?
+          raise "Parse error:\n`#{str.chomp}` is not valid code"
         end
         parsed
       end

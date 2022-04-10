@@ -45,7 +45,7 @@ module MiniLisp
 
               compile_quote(args.first, code_table, macro_table, true)
             when 'uq'
-              raise '`uq` must be inside `qq`.'
+              raise '`uq` must be inside `q` or `qq`.'
             when '~'
               args.reduce([[], code_table, macro_table]) do |(mc, mct, mmt), a|
                 c, ct, mt = compile_r(a, mct, mmt)

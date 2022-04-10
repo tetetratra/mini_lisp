@@ -1,24 +1,24 @@
 (macro nil! (-> (var_name)
-  (qq (= (uq var_name) ()))))
+  `(= ,var_name ())))
 
 (nil! a)
 (p a)
 
 
 (macro p3 (-> (n)
-  (qq (~
-    (p (uq n))
-    (p (uq n))
-    (p (uq n))))))
+  `(~
+    (p ,n)
+    (p ,n)
+    (p ,n))))
 
 (p3 10)
 
 
 (macro flip (-> (a b)
-  (qq (~
-    (= _c (uq b))
-    (= (uq b) (uq a))
-    (= (uq a) _c)))))
+  `(~
+    (= _c ,b)
+    (= ,b ,a)
+    (= ,a _c))))
 
 (= x 1)
 (= y 2)
