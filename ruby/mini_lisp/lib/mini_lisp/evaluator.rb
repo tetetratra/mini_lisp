@@ -87,13 +87,6 @@ module MiniLisp
             else
               vm.current_stack_frame_line_num_add(1)
             end
-          when /^jumpunless (-?\d+)/
-            cond = vm.current_stack_frame.stack.last
-            if !(cond in Value::False | Value::Nil)
-              vm.current_stack_frame_line_num_add(1)
-            else
-              vm.current_stack_frame_line_num_add($1.to_i + 1)
-            end
           when /^jump (-?\d+)/
             vm.current_stack_frame_line_num_add($1.to_i + 1)
           else
