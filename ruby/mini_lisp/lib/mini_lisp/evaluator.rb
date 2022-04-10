@@ -56,6 +56,8 @@ module MiniLisp
               .current_stack_frame_line_num_add(1)
           when /^set (.+)/
             name = $1.to_sym
+            raise 'bug!' if vm.current_stack_frame.stack.empty?
+
             value = vm.current_stack_frame.stack.last
             vm.current_stack_frame_update_env(name, value)
               .current_stack_frame_line_num_add(1)

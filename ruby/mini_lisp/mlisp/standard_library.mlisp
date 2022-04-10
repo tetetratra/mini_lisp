@@ -1,0 +1,18 @@
+(= * (-> (n m)
+  (if (== m 1)
+    n
+    (+ n (* n (- m 1))))))
+
+(= factorial (-> (arg)
+  (if (== arg 0)
+    1
+    (* (factorial (- arg 1)) arg))))
+
+(macro unless (-> (cond then else)
+  `(if (! ,cond) ,then ,else)))
+
+(macro while (-> (cond body)
+  `(~
+    (= _loop (-> () (~ ,body (if ,cond (_loop) ()))))
+    (_loop)
+  )))

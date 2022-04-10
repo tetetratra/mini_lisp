@@ -99,7 +99,7 @@ module MiniLisp
               macro_code_table = Compiler.compile(tokens)
               puts "compiled to #{macro_code_table.inspect}" if $debug
               macro_result = Evaluator.exec(macro_code_table)
-              puts "expanded to #{macro_result.inspect}.\n" if $debug
+              puts "expanded to:#{Parser.format(macro_result.to_ast)}\n\n" if $debug
 
               compile_r(macro_result.to_ast, code_table, macro_table)
             else

@@ -13,7 +13,8 @@ module MiniLisp
   class Error < StandardError; end
 
   def self.run(src)
-    tokens = Lexer.tokenize(src)
+    stdlib = File.open(File.expand_path('../../mlisp/standard_library.mlisp', __FILE__)).read
+    tokens = Lexer.tokenize(stdlib + src)
     puts tokens.map(&:inspect).join(' ') if $debug
 
     parsed = [Lexer::Token::Symbol['~'], *Parser.parse(tokens)]

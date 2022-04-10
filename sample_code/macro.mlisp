@@ -25,3 +25,16 @@
 (flip x y)
 (p x) ; 2
 (p y) ; 1
+
+
+(macro while (-> (cond body)
+  `(~
+    (= _loop (-> () (~ ,body (if ,cond (_loop) ()))))
+    (_loop)
+  )))
+
+(= n 0)
+(while (!= n 5)
+  (~
+    (p n)
+    (= n (+ n 1))))

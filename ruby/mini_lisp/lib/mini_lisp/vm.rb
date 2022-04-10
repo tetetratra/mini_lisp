@@ -168,7 +168,8 @@ module MiniLisp
             end
           in Value::Cons
             # TODO
-          in _ # do nothing
+          else
+            # do nothing
           end
         end
       end
