@@ -8,11 +8,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ["tetetratra"]
   spec.email         = ["44367208+tetetratra@users.noreply.github.com"]
 
-  spec.summary       = "S式の処理系"
-  spec.description   = "Lispもどき"
+  spec.summary       = "Lispもどき"
+  spec.description   = "Lisp風言語"
   spec.homepage      = "https://github.com/tetetratra/mini_lisp"
   spec.license       = "MIT"
-  spec.required_ruby_version = Gem::Requirement.new(">= 2.4.0")
+  spec.required_ruby_version = Gem::Requirement.new(">= 3.1.0")
 
   # spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
