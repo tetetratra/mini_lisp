@@ -1,0 +1,21 @@
+(= factorial (-> (arg)
+  (~
+    (p (stack_frames_size))
+    (if (== arg 0)
+      1
+      (* (factorial (- arg 1)) arg)))))
+
+(p (factorial 30))
+
+(p (stack_frames_size))
+
+(= factorial_tail_call (-> (arg)
+  (~
+    (p (stack_frames_size))
+    (if (== arg 0)
+      1
+      (* (factorial_tail_call (- arg 1)) arg)))))
+
+(p (factorial_tail_call 30))
+
+(p (stack_frames_size))

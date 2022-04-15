@@ -16,8 +16,8 @@ module MiniLisp
     :'!' => Fn { args[0].to_ruby ? Value::False : Value::True },
     :p => Fn { p args.first },
     :sleep => Fn { sleep(args.first); args.first },
-    :stack_frames_size => Fn { vm.stack_frames.size },
-    :callcc => :callcc,
-    :gc => :gc,
+    :stack_frames_size => Fn { Value::Num[vm.stack_frames.size] },
+    :callcc => :callcc, # TODO 関数ではないはず
+    :gc => :gc, # TODO 関数ではないはず
   }
 end
