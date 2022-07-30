@@ -1,5 +1,6 @@
 mod compiler;
 mod parser;
+mod vm;
 
 use std::env;
 use std::fs;
@@ -13,4 +14,5 @@ fn main() {
     println!("{:?}", ast);
     let bytecodes = compiler::compile(ast);
     println!("{:#?}", bytecodes);
+    vm::exec(bytecodes);
 }
