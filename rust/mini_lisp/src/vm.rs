@@ -11,44 +11,44 @@ impl VM {
     fn current_stack_frame(&self) -> &StackFrame {
         &self.stack_frames[&self.stack_frame_num]
     }
-    fn current_stack_frame_line_num_add(&self, n: usize) -> VM {
+    fn current_stack_frame_line_num_add(&self, len: usize) -> VM {
         VM {
             stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
                 .clone()
                 .into_iter()
-                .map(|(sf_num, sf)| {
-                    let new_sf = if sf_num == self.stack_frame_num {
+                .map(|(n, stack_frame)| {
+                    let new_stack_frame = if n == self.stack_frame_num {
                         StackFrame {
-                            line_num: sf.line_num + n,
-                            ..sf
+                            line_num: stack_frame.line_num + len,
+                            ..stack_frame
                         }
                     } else {
-                        sf
+                        stack_frame
                     };
-                    (sf_num, new_sf)
+                    (n, new_stack_frame)
                 })
                 .collect(),
         }
     }
-    fn current_stack_frame_stack_push(&self, value: Value) -> VM {
+    fn current_stack_frame_stack_push(&self, value: &Value) -> VM {
         VM {
             stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
                 .clone()
                 .into_iter()
-                .map(|(sf_num, sf)| {
-                    let new_sf = if sf_num == self.stack_frame_num {
+                .map(|(n, stack_frame)| {
+                    let new_stack_frame = if n == self.stack_frame_num {
                         StackFrame {
-                            stack: vec![sf.stack, vec![value.clone()]].concat(),
-                            ..sf
+                            stack: vec![stack_frame.stack, vec![value.clone()]].concat(),
+                            ..stack_frame
                         }
                     } else {
-                        sf
+                        stack_frame
                     };
-                    (sf_num, new_sf)
+                    (n, new_stack_frame)
                 })
                 .collect(),
         }
@@ -62,20 +62,20 @@ impl VM {
                 .stack_frames
                 .clone()
                 .into_iter()
-                .map(|(sf_num, mut sf)| {
-                    let new_sf = if sf_num == self.stack_frame_num {
+                .map(|(n, stack_frame)| {
+                    let new_stack_frame = if n == self.stack_frame_num {
                         StackFrame {
-                            stack: if sf.stack.len() > 1 {
-                                sf.stack.drain(0..=sf.stack.len() - 2).collect()
+                            stack: if stack_frame.stack.len() > 1 {
+                                 stack_frame.stack.clone().drain(0..=stack_frame.stack.len() - 2).collect()
                             } else {
                                 vec![]
                             },
-                            ..sf
+                            ..stack_frame
                         }
                     } else {
-                        sf
+                        stack_frame
                     };
-                    (sf_num, new_sf)
+                    (n, new_stack_frame)
                 })
                 .collect(),
         };
@@ -85,7 +85,7 @@ impl VM {
 
 #[derive(Debug, Clone)]
 struct StackFrame {
-    stack: Vec<Value>, // TODO: String を MiniLisp::Value のようにする
+    stack: Vec<Value>,
     env: HashMap<String, Value>,
     line_num: usize,
     call_parent_num: Option<usize>,
@@ -107,7 +107,7 @@ fn r(s: &str) -> Regex {
     Regex::new(s).unwrap()
 }
 
-pub fn exec(code_table: Vec<Vec<String>>) -> String {
+pub fn exec(code_table: Vec<Vec<String>>) {
     let stack_frames = HashMap::from([(
         0,
         StackFrame {
@@ -138,25 +138,23 @@ pub fn exec(code_table: Vec<Vec<String>>) -> String {
 
     dbg!(vm.clone());
     loop {
-        let current_stack_frame = vm.current_stack_frame();
-        if current_stack_frame.line_num == code_table[current_stack_frame.code_table_num].len() {
-            break "finish!".to_string();
+        let instruction_sequence = &code_table[vm.current_stack_frame().code_table_num];
+        if vm.current_stack_frame().line_num == instruction_sequence.len() {
+            break;
         }
-        let code = code_table[current_stack_frame.code_table_num].clone()
-            [current_stack_frame.line_num]
-            .clone();
-        let code_str = code.as_str();
-        dbg!(code.clone());
+        let instruction = &instruction_sequence[vm.current_stack_frame().line_num];
+        dbg!(instruction);
+        let code_str = instruction.as_str();
 
         vm = match code_str {
             "nil" => vm
-                .current_stack_frame_stack_push(Value::Null)
+                .current_stack_frame_stack_push(&Value::Null)
                 .current_stack_frame_line_num_add(1),
             "true" => vm
-                .current_stack_frame_stack_push(Value::True)
+                .current_stack_frame_stack_push(&Value::True)
                 .current_stack_frame_line_num_add(1),
             "false" => vm
-                .current_stack_frame_stack_push(Value::False)
+                .current_stack_frame_stack_push(&Value::False)
                 .current_stack_frame_line_num_add(1),
             _ if r(r"^int@(-?\d+)").is_match(code_str) => {
                 let value = Value::Num(
@@ -164,13 +162,13 @@ pub fn exec(code_table: Vec<Vec<String>>) -> String {
                         .parse()
                         .unwrap(),
                 );
-                vm.current_stack_frame_stack_push(value)
+                vm.current_stack_frame_stack_push(&value)
                     .current_stack_frame_line_num_add(1)
             }
             _ if r(r"^get@(.+)").is_match(code_str) => {
                 let op = r(r"^get@(.+)").captures(code_str).unwrap()[1].to_string();
                 let value = vm.current_stack_frame().env.get(&op).unwrap();
-                vm.current_stack_frame_stack_push(value.clone())
+                vm.current_stack_frame_stack_push(&value)
                     .current_stack_frame_line_num_add(1)
             }
             _ if r(r"^send@(\d+)").is_match(code_str) => {
@@ -188,7 +186,7 @@ pub fn exec(code_table: Vec<Vec<String>>) -> String {
                     _ => panic!(),
                 };
                 next_vm
-                    .current_stack_frame_stack_push(calced)
+                    .current_stack_frame_stack_push(&calced)
                     .current_stack_frame_line_num_add(1)
             }
             _ if r(r"^set@(.+)").is_match(code_str) => vm,
