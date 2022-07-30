@@ -66,7 +66,11 @@ impl VM {
                     let new_stack_frame = if n == self.stack_frame_num {
                         StackFrame {
                             stack: if stack_frame.stack.len() > 1 {
-                                 stack_frame.stack.clone().drain(0..=stack_frame.stack.len() - 2).collect()
+                                stack_frame
+                                    .stack
+                                    .clone()
+                                    .drain(0..=stack_frame.stack.len() - 2)
+                                    .collect()
                             } else {
                                 vec![]
                             },
@@ -136,7 +140,7 @@ pub fn exec(code_table: Vec<Vec<String>>) {
         stack_frames,
     };
 
-    dbg!(vm.clone());
+    dbg!(&vm);
     loop {
         let instruction_sequence = &code_table[vm.current_stack_frame().code_table_num];
         if vm.current_stack_frame().line_num == instruction_sequence.len() {
@@ -146,57 +150,48 @@ pub fn exec(code_table: Vec<Vec<String>>) {
         dbg!(instruction);
         let code_str = instruction.as_str();
 
-        vm = match code_str {
-            "nil" => vm
-                .current_stack_frame_stack_push(&Value::Null)
-                .current_stack_frame_line_num_add(1),
-            "true" => vm
-                .current_stack_frame_stack_push(&Value::True)
-                .current_stack_frame_line_num_add(1),
-            "false" => vm
-                .current_stack_frame_stack_push(&Value::False)
-                .current_stack_frame_line_num_add(1),
-            _ if r(r"^int@(-?\d+)").is_match(code_str) => {
-                let value = Value::Num(
-                    r(r"^int@(-?\d+)").captures(code_str).unwrap()[1]
-                        .parse()
-                        .unwrap(),
-                );
-                vm.current_stack_frame_stack_push(&value)
-                    .current_stack_frame_line_num_add(1)
-            }
-            _ if r(r"^get@(.+)").is_match(code_str) => {
-                let op = r(r"^get@(.+)").captures(code_str).unwrap()[1].to_string();
-                let value = vm.current_stack_frame().env.get(&op).unwrap();
-                vm.current_stack_frame_stack_push(&value)
-                    .current_stack_frame_line_num_add(1)
-            }
-            _ if r(r"^send@(\d+)").is_match(code_str) => {
-                let argc: usize = r(r"^send@(\d+)").captures(code_str).unwrap()[1]
-                    .to_string()
-                    .parse()
-                    .unwrap();
-                let (next_vm, op) = vm.current_stack_frame_stack_pop();
-                let (next_vm, args) = (0..argc).fold((next_vm, vec![]), |(vm, args), _i| {
-                    let (next_vm, arg) = vm.current_stack_frame_stack_pop();
-                    (next_vm, [args, vec![arg]].concat())
-                });
-                let calced = match op {
-                    Value::Function(f) => f(args),
-                    _ => panic!(),
-                };
-                next_vm
-                    .current_stack_frame_stack_push(&calced)
-                    .current_stack_frame_line_num_add(1)
-            }
-            _ if r(r"^set@(.+)").is_match(code_str) => vm,
-            _ if r(r"^symbol@(.+)").is_match(code_str) => vm,
-            _ if r(r"^jumpif@(-?\d+)").is_match(code_str) => vm,
-            _ if r(r"^jump@(-?\d+)").is_match(code_str) => vm,
-            _ => {
-                panic!()
-            }
+        vm = if instruction == "nil" {
+            vm.current_stack_frame_stack_push(&Value::Null)
+                .current_stack_frame_line_num_add(1)
+        } else if instruction == "true" {
+            vm.current_stack_frame_stack_push(&Value::True)
+                .current_stack_frame_line_num_add(1)
+        } else if instruction == "false" {
+            vm.current_stack_frame_stack_push(&Value::False)
+                .current_stack_frame_line_num_add(1)
+        } else if let Some(cap) = r(r"^int@(-?\d+)").captures(instruction) {
+            let value = &Value::Num(cap[1].parse().unwrap());
+            vm.current_stack_frame_stack_push(value)
+                .current_stack_frame_line_num_add(1)
+        } else if let Some(cap) = r(r"^get@(.+)").captures(instruction) {
+            let name = &cap[1].to_string();
+            let value = vm.current_stack_frame().env.get(name).unwrap();
+            vm.current_stack_frame_stack_push(value)
+                .current_stack_frame_line_num_add(1)
+        } else if let Some(cap) = r(r"^send@(\d+)").captures(instruction) {
+            let argc: usize = cap[1].parse().unwrap();
+            let (vm, operator) = vm.current_stack_frame_stack_pop();
+            let (vm, args) = (0..argc).fold((vm, vec![]), |(vm, args), _i| {
+                let (vm, arg) = vm.current_stack_frame_stack_pop();
+                (vm, [args, vec![arg]].concat())
+            });
+            let calced = &match operator {
+                Value::Function(f) => f(args),
+                _ => panic!(),
+            };
+            vm.current_stack_frame_stack_push(calced)
+                .current_stack_frame_line_num_add(1)
+        } else if let Some(cap) = r(r"^set@(.+)").captures(instruction) {
+            todo!();
+        } else if let Some(cap) = r(r"^symbol@(.+)").captures(instruction) {
+            todo!();
+        } else if let Some(cap) = r(r"^jumpif@(-?\d+)").captures(instruction) {
+            todo!();
+        } else if let Some(cap) = r(r"^jump@(-?\d+)").captures(instruction) {
+            todo!();
+        } else {
+            panic!();
         };
-        dbg!(vm.clone());
+        dbg!(&vm);
     }
 }
