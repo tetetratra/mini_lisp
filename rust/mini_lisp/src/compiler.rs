@@ -10,7 +10,13 @@ pub fn compile(ast: Ast) -> Vec<Vec<String>> {
 fn compile_r(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<String>>) {
     match ast {
         Ast::S(string) => {
-            if Regex::new(r#"^-?\d+$"#).unwrap().is_match(string.as_str()) {
+            if string == "nil" {
+                (vec!["nil".to_string()], code_table)
+            } else if string == "true" {
+                (vec!["true".to_string()], code_table)
+            } else if string == "false" {
+                (vec!["false".to_string()], code_table)
+            } else if Regex::new(r#"^-?\d+$"#).unwrap().is_match(string.as_str()) {
                 (vec![format!("int@{}", string)], code_table)
             } else if Regex::new(r#"^"(.*)"$"#).unwrap().is_match(string.as_str()) {
                 (vec![format!("str@{}", string)], code_table)

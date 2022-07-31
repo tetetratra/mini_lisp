@@ -83,10 +83,16 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             vm.update_env(name, &value).current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^symbol@(.+)").captures(instruction) {
             todo!();
-        } else if let Some(cap) = r(r"^jumpif@(-?\d+)").captures(instruction) {
-            todo!();
         } else if let Some(cap) = r(r"^jump@(-?\d+)").captures(instruction) {
-            todo!();
+            let n: usize = cap[1].to_string().parse().unwrap();
+            vm.current_stack_frame_pc_add(n + 1)
+        } else if let Some(cap) = r(r"^jumpif@(-?\d+)").captures(instruction) {
+            let n: usize = cap[1].to_string().parse().unwrap();
+            let value = vm.current_stack_frame_stack_last();
+            match value {
+                Value::True => vm.current_stack_frame_pc_add(n + 1),
+                _ => vm.current_stack_frame_pc_add(1),
+            }
         } else {
             panic!();
         };
