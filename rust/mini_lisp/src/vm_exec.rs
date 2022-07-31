@@ -38,7 +38,8 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
 
     dbg!(&vm);
     loop {
-        let instruction_sequence = &instruction_sequence_table[vm.current_stack_frame().instruction_sequence_table_num];
+        let instruction_sequence =
+            &instruction_sequence_table[vm.current_stack_frame().instruction_sequence_table_num];
         if vm.current_stack_frame().pc == instruction_sequence.len() {
             break;
         }
@@ -77,7 +78,9 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             vm.current_stack_frame_stack_push(calced)
                 .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^set@(.+)").captures(instruction) {
-            todo!();
+            let name = &cap[1].to_string();
+            let value = vm.current_stack_frame_stack_last();
+            vm.update_env(name, &value).current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^symbol@(.+)").captures(instruction) {
             todo!();
         } else if let Some(cap) = r(r"^jumpif@(-?\d+)").captures(instruction) {
