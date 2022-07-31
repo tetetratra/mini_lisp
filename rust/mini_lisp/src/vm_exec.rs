@@ -3,7 +3,7 @@ use super::vm::{StackFrame, VM};
 use regex::Regex;
 use std::collections::HashMap;
 
-fn initial_vm(code_table: &Vec<Vec<String>>) -> VM {
+fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
     let stack_frames = HashMap::from([(
         0,
         StackFrame {
@@ -20,10 +20,10 @@ fn initial_vm(code_table: &Vec<Vec<String>>) -> VM {
             ]
             .into_iter()
             .collect(),
-            line_num: 0,
+            pc: 0,
             call_parent_num: None,
             env_parent_num: None,
-            code_table_num: code_table.len() - 1,
+            instruction_sequence_table_num: instruction_sequence_table.len() - 1,
         },
     )]);
 
@@ -33,36 +33,36 @@ fn initial_vm(code_table: &Vec<Vec<String>>) -> VM {
     }
 }
 
-pub fn run(code_table: Vec<Vec<String>>) {
-    let mut vm = initial_vm(&code_table);
+pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
+    let mut vm = initial_vm(&instruction_sequence_table);
 
     dbg!(&vm);
     loop {
-        let instruction_sequence = &code_table[vm.current_stack_frame().code_table_num];
-        if vm.current_stack_frame().line_num == instruction_sequence.len() {
+        let instruction_sequence = &instruction_sequence_table[vm.current_stack_frame().instruction_sequence_table_num];
+        if vm.current_stack_frame().pc == instruction_sequence.len() {
             break;
         }
-        let instruction = &instruction_sequence[vm.current_stack_frame().line_num];
+        let instruction = &instruction_sequence[vm.current_stack_frame().pc];
         dbg!(instruction);
 
         vm = if instruction == "nil" {
             vm.current_stack_frame_stack_push(&Value::Null)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if instruction == "true" {
             vm.current_stack_frame_stack_push(&Value::True)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if instruction == "false" {
             vm.current_stack_frame_stack_push(&Value::False)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^int@(-?\d+)").captures(instruction) {
             let value = &Value::Num(cap[1].parse().unwrap());
             vm.current_stack_frame_stack_push(value)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^get@(.+)").captures(instruction) {
             let name = &cap[1].to_string();
             let value = vm.current_stack_frame().env.get(name).unwrap();
             vm.current_stack_frame_stack_push(value)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^send@(\d+)").captures(instruction) {
             let argc: usize = cap[1].parse().unwrap();
             let (vm, operator) = vm.current_stack_frame_stack_pop();
@@ -75,7 +75,7 @@ pub fn run(code_table: Vec<Vec<String>>) {
                 _ => panic!(),
             };
             vm.current_stack_frame_stack_push(calced)
-                .current_stack_frame_line_num_add(1)
+                .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^set@(.+)").captures(instruction) {
             todo!();
         } else if let Some(cap) = r(r"^symbol@(.+)").captures(instruction) {

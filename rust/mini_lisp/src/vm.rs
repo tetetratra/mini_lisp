@@ -11,7 +11,7 @@ impl VM {
     pub fn current_stack_frame(&self) -> &StackFrame {
         &self.stack_frames[&self.stack_frame_num]
     }
-    pub fn current_stack_frame_line_num_add(&self, len: usize) -> VM {
+    pub fn current_stack_frame_pc_add(&self, len: usize) -> VM {
         VM {
             stack_frame_num: self.stack_frame_num,
             stack_frames: self
@@ -21,7 +21,7 @@ impl VM {
                 .map(|(n, stack_frame)| {
                     let new_stack_frame = if n == self.stack_frame_num {
                         StackFrame {
-                            line_num: stack_frame.line_num + len,
+                            pc: stack_frame.pc + len,
                             ..stack_frame
                         }
                     } else {
@@ -91,8 +91,8 @@ impl VM {
 pub struct StackFrame {
     pub stack: Vec<Value>,
     pub env: HashMap<String, Value>,
-    pub line_num: usize,
+    pub pc: usize,
     pub call_parent_num: Option<usize>,
     pub env_parent_num: Option<usize>,
-    pub code_table_num: usize,
+    pub instruction_sequence_table_num: usize,
 }
