@@ -2,6 +2,7 @@
 
 $debug = !!ARGV.delete('-d')
 $gc_every_time = !!ARGV.delete('-g')
+$mini = !!ARGV.delete('-m')
 
 require_relative '../lib/mini_lisp'
 
