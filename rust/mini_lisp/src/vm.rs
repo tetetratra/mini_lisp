@@ -11,15 +11,14 @@ impl VM {
     pub fn current_stack_frame(&self) -> &StackFrame {
         &self.stack_frames[&self.stack_frame_num]
     }
-    pub fn current_stack_frame_pc_add(&self, len: usize) -> VM {
+    pub fn current_stack_frame_pc_add(self, len: usize) -> VM {
+        let current_stack_frame_num = self.stack_frame_num.clone();
         VM {
-            stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
-                .clone()
                 .into_iter()
                 .map(|(n, stack_frame)| {
-                    let new_stack_frame = if n == self.stack_frame_num {
+                    let new_stack_frame = if n == current_stack_frame_num {
                         StackFrame {
                             pc: stack_frame.pc + len,
                             ..stack_frame
@@ -30,17 +29,17 @@ impl VM {
                     (n, new_stack_frame)
                 })
                 .collect(),
+            ..self
         }
     }
-    pub fn current_stack_frame_stack_push(&self, value: &Value) -> VM {
+    pub fn current_stack_frame_stack_push(self, value: &Value) -> VM {
+        let current_stack_frame_num = self.stack_frame_num.clone();
         VM {
-            stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
-                .clone()
                 .into_iter()
                 .map(|(n, stack_frame)| {
-                    let new_stack_frame = if n == self.stack_frame_num {
+                    let new_stack_frame = if n == current_stack_frame_num {
                         StackFrame {
                             stack: vec![stack_frame.stack, vec![value.clone()]].concat(),
                             ..stack_frame
@@ -51,22 +50,23 @@ impl VM {
                     (n, new_stack_frame)
                 })
                 .collect(),
+            ..self
         }
     }
     pub fn current_stack_frame_stack_last(&self) -> Value {
         self.current_stack_frame().stack.last().unwrap().clone()
     }
-    pub fn current_stack_frame_stack_pop(&self) -> (VM, Value) {
+    pub fn current_stack_frame_stack_pop(self) -> (VM, Value) {
+        let current_stack_frame_num = self.stack_frame_num.clone();
         let value = self.current_stack_frame().stack.last().unwrap().clone();
 
         let next_vm = VM {
-            stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
                 .clone()
                 .into_iter()
                 .map(|(n, stack_frame)| {
-                    let new_stack_frame = if n == self.stack_frame_num {
+                    let new_stack_frame = if n == current_stack_frame_num {
                         StackFrame {
                             stack: if stack_frame.stack.len() > 1 {
                                 stack_frame
@@ -85,10 +85,11 @@ impl VM {
                     (n, new_stack_frame)
                 })
                 .collect(),
+            ..self
         };
         (next_vm, value)
     }
-    pub fn update_env(&self, name: &String, value: &Value) -> VM {
+    pub fn update_env(self, name: &String, value: &Value) -> VM {
         let mut num = &self.stack_frame_num;
         num = loop {
             if let Some(_) = &self.stack_frames[num].env.get(name) {
@@ -100,7 +101,6 @@ impl VM {
             }
         };
         VM {
-            stack_frame_num: self.stack_frame_num,
             stack_frames: self
                 .stack_frames
                 .clone()
@@ -116,6 +116,7 @@ impl VM {
                     (n, new_stack_frame)
                 })
                 .collect(),
+            ..self
         }
     }
 }

@@ -61,7 +61,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
                 .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^get@(.+)").captures(instruction) {
             let name = &cap[1].to_string();
-            let value = vm.current_stack_frame().env.get(name).unwrap();
+            let value = &vm.current_stack_frame().env.get(name).unwrap().clone();
             vm.current_stack_frame_stack_push(value)
                 .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^send@(\d+)").captures(instruction) {
@@ -81,7 +81,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             let name = &cap[1].to_string();
             let value = vm.current_stack_frame_stack_last();
             vm.update_env(name, &value).current_stack_frame_pc_add(1)
-        } else if let Some(cap) = r(r"^symbol@(.+)").captures(instruction) {
+        } else if let Some(_cap) = r(r"^symbol@(.+)").captures(instruction) {
             todo!();
         } else if let Some(cap) = r(r"^jump@(-?\d+)").captures(instruction) {
             let n: usize = cap[1].to_string().parse().unwrap();
