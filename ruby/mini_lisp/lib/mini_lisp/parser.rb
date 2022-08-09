@@ -6,7 +6,6 @@ module MiniLisp
       def parse(tokens)
         tokens = tokens.dup
         parsed = [tokens.shift]
-        q_cnt = 0
         until tokens.empty?
           case s = tokens.shift
           when Token::ParenEnd

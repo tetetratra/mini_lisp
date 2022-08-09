@@ -41,8 +41,6 @@ module MiniLisp
         elsif env_parent_num.nil?
           # 根まで辿ってもなかったら現在のスタックフレームの環境を使う
           break stack_frame_num
-        elsif stack_frame.env.key?(name)
-          break num
         else
           env_parent_num
         end
