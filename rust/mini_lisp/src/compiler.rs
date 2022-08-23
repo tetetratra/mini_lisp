@@ -12,9 +12,9 @@ fn compile_r(ast: Ast, code_table: Vec<Vec<String>>) -> (Vec<String>, Vec<Vec<St
         Ast::S(string) => {
             if string == "nil" {
                 (vec!["nil".to_string()], code_table)
-            } else if string == "true" {
+            } else if string == "true" || string == "#t" {
                 (vec!["true".to_string()], code_table)
-            } else if string == "false" {
+            } else if string == "false" || string == "#f" {
                 (vec!["false".to_string()], code_table)
             } else if Regex::new(r#"^-?\d+$"#).unwrap().is_match(string.as_str()) {
                 (vec![format!("int@{}", string)], code_table)

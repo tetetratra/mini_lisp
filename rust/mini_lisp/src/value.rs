@@ -5,6 +5,7 @@ pub enum Value {
     False,
     Num(i32),
     Symbol(String),
+    String(String),
     Function(fn(Vec<Value>) -> Value),
     Closure {
         instruction_sequence_table_num: usize,

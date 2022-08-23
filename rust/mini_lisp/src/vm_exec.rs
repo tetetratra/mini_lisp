@@ -26,6 +26,13 @@ fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
                     }),
                 ),
                 (
+                    "*".to_string(),
+                    Value::Function(|vs| match (&vs[0], &vs[1]) {
+                        (Value::Num(n1), Value::Num(n2)) => Value::Num(n1 * n2),
+                        _ => panic!(),
+                    }),
+                ),
+                (
                     "==".to_string(),
                     Value::Function(|vs| match (&vs[0], &vs[1]) {
                         (Value::Num(n1), Value::Num(n2)) => {
@@ -36,6 +43,14 @@ fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
                             }
                         }
                         _ => panic!(),
+                    }),
+                ),
+                (
+                    "!".to_string(),
+                    Value::Function(|vs| match vs[0] {
+                        Value::True => Value::False,
+                        Value::False => Value::True,
+                        _ => panic!("type is not boolean"),
                     }),
                 ),
                 (
@@ -90,7 +105,9 @@ fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
 pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
     let mut vm = initial_vm(&instruction_sequence_table);
 
-    if DEBUG { dbg!(&vm); }
+    if DEBUG {
+        dbg!(&vm);
+    }
 
     loop {
         let instruction_sequence =
@@ -105,7 +122,9 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
                     continue;
                 }
                 None => {
-                    if DEBUG { dbg!(&vm); };
+                    if DEBUG {
+                        dbg!(&vm);
+                    };
                     break;
                 }
             };
@@ -129,6 +148,10 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
                 .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^int@(-?\d+)").captures(instruction) {
             let value = Value::Num(cap[1].parse().unwrap());
+            vm.current_stack_frame_stack_push(value)
+                .current_stack_frame_pc_add(1)
+        } else if let Some(cap) = r(r"^str@(.*)").captures(instruction) {
+            let value = Value::String(cap[1].parse().unwrap());
             vm.current_stack_frame_stack_push(value)
                 .current_stack_frame_pc_add(1)
         } else if let Some(cap) = r(r"^get@(.+)").captures(instruction) {
@@ -212,7 +235,9 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             panic!();
         };
 
-        if DEBUG { dbg!(&vm); };
+        if DEBUG {
+            dbg!(&vm);
+        };
     }
 }
 fn r(s: &str) -> Regex {

@@ -41,14 +41,14 @@ impl fmt::Debug for Ast {
 }
 
 pub fn parse(raw_code: String) -> Ast {
-    let raw_code_without_comment = Regex::new(r"[#;].*")
+    let raw_code_without_comment = Regex::new(r";.*")
         .unwrap()
         .replace_all(raw_code.as_str(), "");
     let code = Regex::new(r"\s+")
         .unwrap()
         .replace_all(&raw_code_without_comment, " ");
 
-    let regex = Regex::new(r#"\(|\)|[\w\d\-+=*%_@^~<>?$&|!]+|".+?""#).unwrap();
+    let regex = Regex::new(r###"\(|\)|[\w\d\-+=*%_@^~<>?$&|!#]+|".+?""###).unwrap();
     let mut tokens = regex.find_iter(&code).map(|m| m.as_str().to_string());
 
     let mut parsed: Vec<Ast> = vec![Ast::S(tokens.next().unwrap())];

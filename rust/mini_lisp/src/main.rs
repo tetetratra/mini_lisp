@@ -14,13 +14,19 @@ fn main() {
     let raw_code = fs::read_to_string(&filename).unwrap();
 
     let code = format!("(~\n{})", raw_code);
-    if DEBUG { println!("{}", code); };
+    if DEBUG {
+        println!("{}", code);
+    };
 
     let ast = parser::parse(code);
-    if DEBUG { println!("{:?}", ast); }
+    if DEBUG {
+        println!("{:?}", ast);
+    }
 
     let bytecodes = compiler::compile(ast);
-    if DEBUG { println!("{:#?}", bytecodes); }
+    if DEBUG {
+        println!("{:#?}", bytecodes);
+    }
 
     vm_exec::run(bytecodes);
 }
