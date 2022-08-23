@@ -3,6 +3,8 @@ use super::vm::{StackFrame, VM};
 use regex::Regex;
 use std::collections::HashMap;
 
+use super::DEBUG;
+
 fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
     let stack_frames = HashMap::from([(
         0,
@@ -88,7 +90,8 @@ fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
 pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
     let mut vm = initial_vm(&instruction_sequence_table);
 
-    // dbg!(&vm);
+    if DEBUG { dbg!(&vm); }
+
     loop {
         let instruction_sequence =
             &instruction_sequence_table[vm.current_stack_frame().instruction_sequence_table_num];
@@ -102,7 +105,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
                     continue;
                 }
                 None => {
-                    // dbg!(&vm);
+                    if DEBUG { dbg!(&vm); };
                     break;
                 }
             };
@@ -110,8 +113,10 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
 
         let instruction = &instruction_sequence[vm.current_stack_frame().pc];
 
-        // dbg!(instruction_sequence);
-        // dbg!(instruction);
+        if DEBUG {
+            dbg!(instruction_sequence);
+            dbg!(instruction);
+        }
 
         vm = if instruction == "nil" {
             vm.current_stack_frame_stack_push(Value::Null)
@@ -207,7 +212,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             panic!();
         };
 
-        // dbg!(&vm);
+        if DEBUG { dbg!(&vm); };
     }
 }
 fn r(s: &str) -> Regex {
