@@ -32,7 +32,7 @@ impl VM {
             ..self
         }
     }
-    pub fn current_stack_frame_stack_push(self, value: &Value) -> VM {
+    pub fn current_stack_frame_stack_push(self, value: Value) -> VM {
         let current_stack_frame_num = self.stack_frame_num.clone();
         VM {
             stack_frames: self
@@ -88,6 +88,18 @@ impl VM {
             ..self
         };
         (next_vm, value)
+    }
+    pub fn get_env(&self, name: &String) -> Value {
+        let mut num = &self.stack_frame_num;
+        loop {
+            if let Some(value) = self.stack_frames[num].env.get(name) {
+                break value.clone();
+            } else if let Some(env_parent_num) = &self.stack_frames[num].env_parent_num {
+                num = env_parent_num;
+            } else {
+                panic!();
+            }
+        }
     }
     pub fn update_env(self, name: &String, value: &Value) -> VM {
         let mut num = &self.stack_frame_num;
