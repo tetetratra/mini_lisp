@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rainbow/refinement'
 using Rainbow
 
@@ -5,7 +7,7 @@ module MiniLisp
   module Lexer
     class << self
       def tokenize(src)
-        regex = /\(|\)|,|`|'|#t|#f|\".+?\"|[\w\d\-+=*%_^~<>?$&|!@]+/
+        regex = /\(|\)|,|`|'|#t|#f|".+?"|[\w\d\-+=*%_^~<>?$&|!@]+/
         tokens = src.gsub(/;.*/, '').gsub(/\s+/, ' ').scan(regex)
         tokens.map do |token|
           case token
@@ -24,9 +26,9 @@ module MiniLisp
           when '#f'
             Token::False
           when /^(-?\d+)$/
-            Token::Integer[$1.to_i]
+            Token::Integer[Regexp.last_match(1).to_i]
           when /^"(.*)"$/
-            Token::String[$1]
+            Token::String[Regexp.last_match(1)]
           else
             Token::Symbol[token]
           end
@@ -75,7 +77,7 @@ module MiniLisp
       end
 
       String = Struct.new(:v) do
-        def inspect = %Q("#{v}").magenta
+        def inspect = %("#{v}").magenta
       end
 
       Symbol = Struct.new(:v) do

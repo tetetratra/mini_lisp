@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'set'
 require 'rainbow/refinement'
 using Rainbow
@@ -129,7 +131,7 @@ module MiniLisp
     end
 
     def gc
-      keep = stack_frames.to_h { |num, _sf| [num, false] }
+      keep = stack_frames.transform_values { |_sf| false }
 
       keep[stack_frame_num] = true
       stack = [stack_frame_num]
@@ -158,7 +160,7 @@ module MiniLisp
               keep[sfn] = true
             end
           in Value::Continuation => continuation
-            continuation.vm.stack_frames.keys.each do |n|
+            continuation.vm.stack_frames.each_key do |n|
               unless keep[n]
                 stack << n
                 keep[n] = true
@@ -166,13 +168,13 @@ module MiniLisp
             end
           in Value::Cons
             # TODO
-          else
+            else
             # do nothing
           end
         end
       end
 
-      puts "droped: #{keep.reject{ _2 }.keys.to_set.inspect[/{.*}/]}".cyan if $debug && keep.reject{ _2 }.any?
+      puts "droped: #{keep.reject { _2 }.keys.to_set.inspect[/{.*}/]}".cyan if $debug && keep.reject { _2 }.any?
 
       VM[
         stack_frame_num,
@@ -196,12 +198,10 @@ module MiniLisp
     def find_env(name, call_stack)
       if env.key?(name)
         env[name]
+      elsif env_parent = env_parent(call_stack)
+        env_parent.find_env(name, call_stack)
       else
-        if env_parent = env_parent(call_stack)
-          env_parent.find_env(name, call_stack)
-        else
-          raise "variable `#{name}` is not defined"
-        end
+        raise "variable `#{name}` is not defined"
       end
     end
   end

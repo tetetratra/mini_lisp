@@ -29,7 +29,7 @@ module MiniLisp
               break vm.current_stack_frame.stack.last
             else
               next_vm = vm.change_stack_frame_num(vm.current_stack_frame.call_parent_num)
-                     .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
+                          .current_stack_frame_stack_push(vm.current_stack_frame.stack.last)
               print_code_table(next_vm, code_table) if $debug
               next next_vm
             end
@@ -49,30 +49,30 @@ module MiniLisp
             vm.current_stack_frame_stack_push(Value::False)
               .current_stack_frame_line_num_add(1)
           when /^int (-?\d+)/
-            vm.current_stack_frame_stack_push(Value::Num[$1.to_i])
+            vm.current_stack_frame_stack_push(Value::Num[Regexp.last_match(1).to_i])
               .current_stack_frame_line_num_add(1)
           when /^str (.*)/
-            vm.current_stack_frame_stack_push(Value::String[$1])
+            vm.current_stack_frame_stack_push(Value::String[Regexp.last_match(1)])
               .current_stack_frame_line_num_add(1)
           when /^set (.+)/
-            name = $1.to_sym
+            name = Regexp.last_match(1).to_sym
             raise 'bug!' if vm.current_stack_frame.stack.empty?
 
             value = vm.current_stack_frame.stack.last
             vm.current_stack_frame_update_env(name, value)
               .current_stack_frame_line_num_add(1)
           when /^get (.+)/
-            var_name = $1.to_sym
+            var_name = Regexp.last_match(1).to_sym
             value = vm.current_stack_frame_find_env(var_name)
 
             vm.current_stack_frame_stack_push(value)
               .current_stack_frame_line_num_add(1)
           when /^symbol (.+)/
-            vm.current_stack_frame_stack_push(Value::Symbol[$1])
+            vm.current_stack_frame_stack_push(Value::Symbol[Regexp.last_match(1)])
               .current_stack_frame_line_num_add(1)
           when /^closure (\d+) ([\w,]*)/
-            function_num = $1.to_i
-            args = $2.split(',').map(&:to_sym)
+            function_num = Regexp.last_match(1).to_i
+            args = Regexp.last_match(2).split(',').map(&:to_sym)
             closure = Value::Closure[
               function_num,
               args,
@@ -81,16 +81,16 @@ module MiniLisp
             vm.current_stack_frame_stack_push(closure)
               .current_stack_frame_line_num_add(1)
           when /^send (\d+)/
-            exec_send(vm, code_table, $1.to_i)
+            exec_send(vm, code_table, Regexp.last_match(1).to_i)
           when /^jumpif (-?\d+)/
             cond = vm.current_stack_frame.stack.last
             if !(cond in Value::False | Value::Nil)
-              vm.current_stack_frame_line_num_add($1.to_i + 1)
+              vm.current_stack_frame_line_num_add(Regexp.last_match(1).to_i + 1)
             else
               vm.current_stack_frame_line_num_add(1)
             end
           when /^jump (-?\d+)/
-            vm.current_stack_frame_line_num_add($1.to_i + 1)
+            vm.current_stack_frame_line_num_add(Regexp.last_match(1).to_i + 1)
           else
             raise "command `#{line.inspect}` is not found"
           end.then { $gc_every_time ? _1.gc : _1 }
@@ -102,15 +102,15 @@ module MiniLisp
       def exec_send(vm, code_table, argc)
         method_poped_vm, method = vm.current_stack_frame_stack_pop
         args_poped_vm, args = argc.times
-          .reduce([method_poped_vm, []]) { |(memo_vm, args), _|
+                                  .reduce([method_poped_vm, []]) do |(memo_vm, args), _|
           next_vm, poped = memo_vm.current_stack_frame_stack_pop
           [next_vm, [poped, *args]]
-        }
+        end
         case method
         in :callcc
           continuation = Value::Continuation[
             args_poped_vm
-              .current_stack_frame_line_num_add(1)
+                         .current_stack_frame_line_num_add(1)
           ]
 
           closure = args.first
@@ -126,9 +126,9 @@ module MiniLisp
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
 
           next_vm = args_poped_vm
-            .current_stack_frame_line_num_add(1)
-            .insert_stack_frame(new_stack_frame_num, new_stack_frame)
-            .change_stack_frame_num(new_stack_frame_num)
+                    .current_stack_frame_line_num_add(1)
+                    .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+                    .change_stack_frame_num(new_stack_frame_num)
           print_code_table(next_vm, code_table) if $debug
           next_vm
         in :gc
@@ -140,9 +140,9 @@ module MiniLisp
           next_vm = VM[
             continuation.vm.stack_frame_num,
             {
-               # continuation.vm には含まれていないスタックフレームも引き継ぐ
+              # continuation.vm には含まれていないスタックフレームも引き継ぐ
               **args_poped_vm.stack_frames,
-              **continuation.vm.stack_frames.to_h { |continuation_stack_frame_num, continuation_stack_frame|
+              **continuation.vm.stack_frames.to_h do |continuation_stack_frame_num, continuation_stack_frame|
                 [
                   continuation_stack_frame_num,
                   StackFrame[
@@ -154,7 +154,7 @@ module MiniLisp
                     continuation_stack_frame.code_table_num,
                   ].freeze
                 ]
-              }
+              end
             }
           ].freeze
           print_code_table(next_vm, code_table) if $debug
@@ -162,7 +162,7 @@ module MiniLisp
           next_vm
         in Value::Function => function
           args_poped_vm
-            .current_stack_frame_stack_push(function.(args, vm))
+            .current_stack_frame_stack_push(function.call(args, vm))
             .current_stack_frame_line_num_add(1)
         in Value::Closure => closure
           new_stack_frame = StackFrame[
@@ -175,16 +175,16 @@ module MiniLisp
           ].freeze
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
           next_vm = args_poped_vm
-            .current_stack_frame_line_num_add(1)
-            .insert_stack_frame(new_stack_frame_num, new_stack_frame)
-            .change_stack_frame_num(new_stack_frame_num)
+                    .current_stack_frame_line_num_add(1)
+                    .insert_stack_frame(new_stack_frame_num, new_stack_frame)
+                    .change_stack_frame_num(new_stack_frame_num)
           print_code_table(next_vm, code_table) if $debug
           next_vm
         end
       end
 
       def print_code_table(vm, code_table)
-        puts ({ vm.current_stack_frame.code_table_num => code_table[vm.current_stack_frame.code_table_num] }).inspect.red
+        puts(vm.current_stack_frame.code_table_num => code_table[vm.current_stack_frame.code_table_num]).inspect.red
         puts '------------'
       end
 

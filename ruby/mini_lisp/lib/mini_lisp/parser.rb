@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module MiniLisp
   module Parser
     class << self
@@ -10,9 +12,7 @@ module MiniLisp
           case s = tokens.shift
           when Token::ParenEnd
             poped = [s]
-            until poped in [Token::ParenBegin, *rest, Token::ParenEnd]
-              poped.unshift(parsed.pop)
-            end
+            poped.unshift(parsed.pop) until poped in [Token::ParenBegin, *rest, Token::ParenEnd]
             poped = poped[1..-2]
             case parsed.last
             when Token::Quote
@@ -48,6 +48,7 @@ module MiniLisp
         unless ([Token::ParenBegin, Token::ParenEnd] & parsed.flatten).empty?
           raise "Parse error:\n`#{str.chomp}` is not valid code"
         end
+
         parsed
       end
 

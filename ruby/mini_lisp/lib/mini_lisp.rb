@@ -13,7 +13,7 @@ module MiniLisp
   class Error < StandardError; end
 
   def self.run(src)
-    stdlib = $mini ? '' : File.open(File.expand_path('../../mlisp/standard_library.mlisp', __FILE__)).read
+    stdlib = $mini ? '' : File.open(File.expand_path('../mlisp/standard_library.mlisp', __dir__)).read
     tokens = Lexer.tokenize(stdlib + src)
     puts tokens.map(&:inspect).join(' ') if $debug
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module MiniLisp
   module Compiler
     class << self
@@ -13,17 +15,17 @@ module MiniLisp
       def compile_r(ast, code_table, macro_table)
         case ast
         in Token::True
-          [ ['true'], code_table, macro_table]
+          [['true'], code_table, macro_table]
         in Token::False
-          [ ['false'], code_table, macro_table]
+          [['false'], code_table, macro_table]
         in Token::Integer
-          [ ["int #{ast.v}"], code_table, macro_table]
+          [["int #{ast.v}"], code_table, macro_table]
         in Token::String
-          [ ["str #{ast.v}"], code_table, macro_table]
+          [["str #{ast.v}"], code_table, macro_table]
         in Token::Symbol
-          [ ["get #{ast.v}"], code_table, macro_table]
+          [["get #{ast.v}"], code_table, macro_table]
         in Array if ast.empty?
-          [ ['nil'], code_table, macro_table ]
+          [['nil'], code_table, macro_table]
         in Array
           method, *args = ast
           case method
@@ -62,7 +64,7 @@ module MiniLisp
                   "jumpif #{else_code.size + 1}",
                   *else_code,
                   "jump #{then_code.size}",
-                  *then_code,
+                  *then_code
                 ],
                 new_code_table,
                 new_macro_table
@@ -85,7 +87,7 @@ module MiniLisp
                 [[*mc, *c], ct, mt]
               end => [closure_code, new_code_table, new_macro_table]
               [
-                [ "closure #{new_code_table.size} #{closure_args.map(&:v).join(',')}" ],
+                ["closure #{new_code_table.size} #{closure_args.map(&:v).join(',')}"],
                 [*new_code_table, closure_code],
                 new_macro_table
               ]
@@ -178,4 +180,3 @@ module MiniLisp
     end
   end
 end
-

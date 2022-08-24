@@ -1,28 +1,33 @@
+# frozen_string_literal: true
+
 require 'set'
 require 'rainbow/refinement'
 using Rainbow
 
 module MiniLisp
   module Value
-    Nil = Object.new
-    class << Nil
-      def inspect = '()'.yellow
-      def to_ruby = []
-      def to_ast = []
+    class Nil
+      class << self
+        def inspect = '()'.yellow
+        def to_ruby = []
+        def to_ast = []
+      end
     end
 
-    True = Object.new
-    class << True
-      def inspect = 'true'.magenta
-      def to_ruby = true
-      def to_ast = Lexer::Token::True
+    class True
+      class << self
+        def inspect = 'true'.magenta
+        def to_ruby = true
+        def to_ast = Lexer::Token::True
+      end
     end
 
-    False = Object.new
-    class << False
-      def inspect = 'false'.magenta
-      def to_ruby = false
-      def to_ast = Lexer::Token::False
+    class False
+      class << self
+        def inspect = 'false'.magenta
+        def to_ruby = false
+        def to_ast = Lexer::Token::False
+      end
     end
 
     Num = Struct.new(:v) do
@@ -53,7 +58,7 @@ module MiniLisp
 
     Cons = Struct.new(:head, :rest) do
       def inspect
-        '('.yellow + head.inspect + ' . ' + rest.inspect + ')'.yellow
+        "#{'('.yellow}#{head.inspect} . #{rest.inspect}#{')'.yellow}"
       end
 
       def to_ast
