@@ -2,6 +2,8 @@ use super::value::Value;
 use super::vm::{StackFrame, VM};
 use regex::Regex;
 use std::collections::HashMap;
+use std::iter::Inspect;
+use std::{thread, time};
 
 use super::DEBUG;
 
@@ -134,6 +136,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
 
         if DEBUG {
             dbg!(instruction_sequence);
+            dbg!(vm.current_stack_frame().pc);
             dbg!(instruction);
         }
 
@@ -164,7 +167,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             let (vm, operator) = vm.current_stack_frame_stack_pop();
             let (mut vm, args) = (0..argc).fold((vm, vec![]), |(vm, args), _i| {
                 let (vm, arg) = vm.current_stack_frame_stack_pop();
-                (vm, [args, vec![arg]].concat())
+                (vm, [vec![arg], args].concat()) // 先頭にあるargが第一引数となる
             });
             match operator {
                 Value::Function(f) => {
@@ -178,7 +181,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
                     stack_frame_num,
                 } => {
                     if args.len() != closure_args.len() {
-                        panic!("arguments size is not equal");
+                        panic!("arguments size not equal");
                     }
                     let env = closure_args.into_iter().zip(args.into_iter()).collect();
 
@@ -236,7 +239,11 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
         };
 
         if DEBUG {
-            dbg!(&vm);
+            dbg!(&vm.stack_frame_num);
+            dbg!(&vm.current_stack_frame());
+            print!("\n\n");
+
+            thread::sleep(time::Duration::from_millis(0));
         };
     }
 }
