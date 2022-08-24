@@ -1,11 +1,9 @@
 use super::value::Value;
 use super::vm::{StackFrame, VM};
+use super::DEBUG;
 use regex::Regex;
 use std::collections::HashMap;
-use std::iter::Inspect;
 use std::{thread, time};
-
-use super::DEBUG;
 
 fn initial_vm(instruction_sequence_table: &Vec<Vec<String>>) -> VM {
     let stack_frames = HashMap::from([(
@@ -243,7 +241,7 @@ pub fn run(instruction_sequence_table: Vec<Vec<String>>) {
             dbg!(&vm.current_stack_frame());
             print!("\n\n");
 
-            thread::sleep(time::Duration::from_millis(0));
+            thread::sleep(time::Duration::from_millis(1000));
         };
     }
 }

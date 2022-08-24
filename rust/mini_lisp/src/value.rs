@@ -4,7 +4,7 @@ pub enum Value {
     True,
     False,
     Num(i32),
-    Symbol(String),
+    // Symbol(String),
     String(String),
     Function(fn(Vec<Value>) -> Value),
     Closure {
