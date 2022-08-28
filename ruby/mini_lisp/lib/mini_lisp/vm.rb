@@ -2,13 +2,10 @@
 
 require 'set'
 require 'rainbow/refinement'
-using Rainbow
 
 module MiniLisp
   class VM
-    class << self
-      alias [] new
-    end
+    using Rainbow
 
     attr_reader :stack_frame_num, :stack_frames
 
@@ -17,12 +14,9 @@ module MiniLisp
       @stack_frames = stack_frames
     end
 
-
     def change_stack_frame_num(n)
-      VM[
-        n,
-        @stack_frames
-      ].freeze
+      VM.new(n,
+             @stack_frames).freeze
     end
 
     def current_stack_frame
@@ -60,72 +54,57 @@ module MiniLisp
         end
       end
 
-      VM[
-        @stack_frame_num,
-        {
-          **@stack_frames.except(target_stack_frame_num),
-          target_stack_frame_num => StackFrame[
-            @stack_frames[target_stack_frame_num].stack,
-            { **@stack_frames[target_stack_frame_num].env, name => value },
-            @stack_frames[target_stack_frame_num].line_num,
-            @stack_frames[target_stack_frame_num].call_parent_num,
-            @stack_frames[target_stack_frame_num].env_parent_num,
-            @stack_frames[target_stack_frame_num].code_table_num
-          ]
-        }
-      ].freeze
+      VM.new(@stack_frame_num,
+             {
+               **@stack_frames.except(target_stack_frame_num),
+               target_stack_frame_num => StackFrame.new(@stack_frames[target_stack_frame_num].stack,
+                                                        { **@stack_frames[target_stack_frame_num].env,
+                                                          name => value },
+                                                        @stack_frames[target_stack_frame_num].line_num,
+                                                        @stack_frames[target_stack_frame_num].call_parent_num,
+                                                        @stack_frames[target_stack_frame_num].env_parent_num,
+                                                        @stack_frames[target_stack_frame_num].code_table_num)
+             }).freeze
     end
 
     def current_stack_frame_stack_push(value)
-      VM[
-        @stack_frame_num,
-        {
-          **@stack_frames.except(@stack_frame_num),
-          @stack_frame_num => StackFrame[
-            [*current_stack_frame.stack, value],
-            current_stack_frame.env,
-            current_stack_frame.line_num,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
+      VM.new(@stack_frame_num,
+             {
+               **@stack_frames.except(@stack_frame_num),
+               @stack_frame_num => StackFrame.new([*current_stack_frame.stack, value],
+                                                  current_stack_frame.env,
+                                                  current_stack_frame.line_num,
+                                                  current_stack_frame.call_parent_num,
+                                                  current_stack_frame.env_parent_num,
+                                                  current_stack_frame.code_table_num)
+             }).freeze
     end
 
     def current_stack_frame_stack_pop
-      vm = VM[
-        @stack_frame_num,
-        {
-          **@stack_frames.except(@stack_frame_num),
-          @stack_frame_num => StackFrame[
-            current_stack_frame.stack[..-2],
-            current_stack_frame.env,
-            current_stack_frame.line_num,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
+      vm = VM.new(@stack_frame_num,
+                  {
+                    **@stack_frames.except(@stack_frame_num),
+                    @stack_frame_num => StackFrame.new(current_stack_frame.stack[..-2],
+                                                       current_stack_frame.env,
+                                                       current_stack_frame.line_num,
+                                                       current_stack_frame.call_parent_num,
+                                                       current_stack_frame.env_parent_num,
+                                                       current_stack_frame.code_table_num)
+                  }).freeze
       [vm, current_stack_frame.stack.last]
     end
 
     def current_stack_frame_line_num_add(n)
-      VM[
-        @stack_frame_num,
-        {
-          **@stack_frames.except(@stack_frame_num),
-          @stack_frame_num => StackFrame[
-            current_stack_frame.stack,
-            current_stack_frame.env,
-            current_stack_frame.line_num + n,
-            current_stack_frame.call_parent_num,
-            current_stack_frame.env_parent_num,
-            current_stack_frame.code_table_num
-          ]
-        }
-      ].freeze
+      VM.new(@stack_frame_num,
+             {
+               **@stack_frames.except(@stack_frame_num),
+               @stack_frame_num => StackFrame.new(current_stack_frame.stack,
+                                                  current_stack_frame.env,
+                                                  current_stack_frame.line_num + n,
+                                                  current_stack_frame.call_parent_num,
+                                                  current_stack_frame.env_parent_num,
+                                                  current_stack_frame.code_table_num)
+             }).freeze
     end
 
     def available_stack_frame_num
@@ -133,13 +112,11 @@ module MiniLisp
     end
 
     def insert_stack_frame(n, stack_frame)
-      VM[
-        @stack_frame_num,
-        {
-          **@stack_frames,
-          n => stack_frame
-        }
-      ].freeze
+      VM.new(@stack_frame_num,
+             {
+               **@stack_frames,
+               n => stack_frame
+             }).freeze
     end
 
     def gc
@@ -188,20 +165,17 @@ module MiniLisp
 
       puts "droped: #{keep.reject { _2 }.keys.to_set.inspect[/{.*}/]}".cyan if $debug && keep.reject { _2 }.any?
 
-      VM[
-        @stack_frame_num,
-        @stack_frames.select { |num, _sf| keep[num] }
-      ]
+      VM.new(@stack_frame_num,
+             @stack_frames.select { |num, _sf| keep[num] })
     end
   end
 
   class StackFrame
-    class << self
-      alias [] new
-    end
+    using Rainbow
 
-    attr_reader :stack, :env,:line_num,:call_parent_num,:env_parent_num,:code_table_num
-    def initialize(stack, env,line_num,call_parent_num,env_parent_num,code_table_num)
+    attr_reader :stack, :env, :line_num, :call_parent_num, :env_parent_num, :code_table_num
+
+    def initialize(stack, env, line_num, call_parent_num, env_parent_num, code_table_num)
       @stack = stack
       @env = env
       @line_num = line_num
@@ -224,26 +198,4 @@ module MiniLisp
       end
     end
   end
-  # StackFrame = Struct.new(
-  #   :stack,
-  #   :env,
-  #   :line_num,
-  #   :call_parent_num,
-  #   :env_parent_num,
-  #   :code_table_num
-  # ) do
-  #   def env_parent(call_stack)
-  #     call_stack[env_parent_num]
-  #   end
-
-  #   def find_env(name, call_stack)
-  #     if env.key?(name)
-  #       env[name]
-  #     elsif env_parent = env_parent(call_stack)
-  #       env_parent.find_env(name, call_stack)
-  #     else
-  #       raise "variable `#{name}` is not defined"
-  #     end
-  #   end
-  # end
 end

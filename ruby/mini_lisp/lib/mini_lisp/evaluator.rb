@@ -7,19 +7,15 @@ module MiniLisp
 
     class << self
       def exec(code_table)
-        init_vm = VM[
-          0,
-          {
-            0 => StackFrame[
-              [],
-              Functions,
-              0,
-              nil,
-              nil,
-              code_table.size - 1
-            ].freeze
-          }
-        ].freeze
+        init_vm = VM.new(0,
+                         {
+                           0 => StackFrame.new([],
+                                               Functions,
+                                               0,
+                                               nil,
+                                               nil,
+                                               code_table.size - 1).freeze
+                         }).freeze
 
         print_code_table(init_vm, code_table) if $debug
 
@@ -85,10 +81,10 @@ module MiniLisp
             exec_send(vm, code_table, Regexp.last_match(1).to_i)
           when /^jumpif (-?\d+)/
             cond = vm.current_stack_frame.stack.last
-            if !(cond in Value::False | Value::Nil)
-              vm.current_stack_frame_line_num_add(Regexp.last_match(1).to_i + 1)
-            else
+            if cond == Value::False || cond == Value::Nil
               vm.current_stack_frame_line_num_add(1)
+            else
+              vm.current_stack_frame_line_num_add(Regexp.last_match(1).to_i + 1)
             end
           when /^jump (-?\d+)/
             vm.current_stack_frame_line_num_add(Regexp.last_match(1).to_i + 1)
@@ -116,14 +112,12 @@ module MiniLisp
 
           closure = args.first
 
-          new_stack_frame = StackFrame[
-            [],
-            { closure.args.first => continuation },
-            0,
-            args_poped_vm.stack_frame_num,
-            closure.stack_frame_num,
-            closure.function_num
-          ].freeze
+          new_stack_frame = StackFrame.new([],
+                                           { closure.args.first => continuation },
+                                           0,
+                                           args_poped_vm.stack_frame_num,
+                                           closure.stack_frame_num,
+                                           closure.function_num).freeze
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
 
           next_vm = args_poped_vm
@@ -138,26 +132,22 @@ module MiniLisp
             .current_stack_frame_line_num_add(1)
         in Value::Continuation => continuation
           # continuation.vmの環境を現在の環境に差し替えている
-          next_vm = VM[
-            continuation.vm.stack_frame_num,
-            {
-              # continuation.vm には含まれていないスタックフレームも引き継ぐ
-              **args_poped_vm.stack_frames,
-              **continuation.vm.stack_frames.to_h do |continuation_stack_frame_num, continuation_stack_frame|
-                [
-                  continuation_stack_frame_num,
-                  StackFrame[
-                    [*continuation_stack_frame.stack, args.first],
-                    args_poped_vm.stack_frames[continuation_stack_frame_num].env,
-                    continuation_stack_frame.line_num,
-                    continuation_stack_frame.call_parent_num,
-                    continuation_stack_frame.env_parent_num,
-                    continuation_stack_frame.code_table_num,
-                  ].freeze
-                ]
-              end
-            }
-          ].freeze
+          next_vm = VM.new(continuation.vm.stack_frame_num,
+                           {
+                             # continuation.vm には含まれていないスタックフレームも引き継ぐ
+                             **args_poped_vm.stack_frames,
+                             **continuation.vm.stack_frames.to_h do |continuation_stack_frame_num, continuation_stack_frame|
+                               [
+                                 continuation_stack_frame_num,
+                                 StackFrame.new([*continuation_stack_frame.stack, args.first],
+                                                args_poped_vm.stack_frames[continuation_stack_frame_num].env,
+                                                continuation_stack_frame.line_num,
+                                                continuation_stack_frame.call_parent_num,
+                                                continuation_stack_frame.env_parent_num,
+                                                continuation_stack_frame.code_table_num,).freeze
+                               ]
+                             end
+                           }).freeze
           print_code_table(next_vm, code_table) if $debug
           print_stack_frame(next_vm, code_table) if $debug
           next_vm
@@ -166,14 +156,12 @@ module MiniLisp
             .current_stack_frame_stack_push(function.call(args, vm))
             .current_stack_frame_line_num_add(1)
         in Value::Closure => closure
-          new_stack_frame = StackFrame[
-            [],
-            closure.args.zip(args).to_h,
-            0,
-            args_poped_vm.stack_frame_num,
-            closure.stack_frame_num,
-            closure.function_num
-          ].freeze
+          new_stack_frame = StackFrame.new([],
+                                           closure.args.zip(args).to_h,
+                                           0,
+                                           args_poped_vm.stack_frame_num,
+                                           closure.stack_frame_num,
+                                           closure.function_num).freeze
           new_stack_frame_num = args_poped_vm.available_stack_frame_num
           next_vm = args_poped_vm
                     .current_stack_frame_line_num_add(1)

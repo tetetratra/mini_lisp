@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'rainbow/refinement'
-using Rainbow
 
 module MiniLisp
   module Lexer
@@ -37,6 +36,8 @@ module MiniLisp
     end
 
     module Token
+      using Rainbow
+
       ParenBegin = Object.new
       class << ParenBegin
         def inspect = '('.magenta

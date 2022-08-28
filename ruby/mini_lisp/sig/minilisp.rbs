@@ -101,16 +101,12 @@ module MiniLisp
   end
 
   module Parser
-    extend MiniLisp::Lexer
-
     def self.format: (untyped parsed, ?untyped depth) -> untyped
 
     def self.parse: (untyped tokens) -> untyped
   end
 
   class StackFrame
-    alias self.[] self.new
-
     public
 
     def call_parent_num: () -> untyped
@@ -135,8 +131,6 @@ module MiniLisp
   end
 
   class VM
-    alias self.[] self.new
-
     public
 
     def available_stack_frame_num: () -> untyped

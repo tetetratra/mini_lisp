@@ -2,10 +2,11 @@
 
 require 'set'
 require 'rainbow/refinement'
-using Rainbow
 
 module MiniLisp
   module Value
+    using Rainbow
+
     class Nil
       class << self
         def inspect = '()'.yellow
