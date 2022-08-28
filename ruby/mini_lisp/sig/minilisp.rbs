@@ -1,168 +1,370 @@
-# TypeProf 0.21.3
-
-# Revealed types
-#  /Users/kondo.daichi/p/mini_lisp/ruby/mini_lisp/lib/mini_lisp/evaluator.rb:192 #=> Array[singleton(MiniLisp::Value::Nil)]
-#  /Users/kondo.daichi/p/mini_lisp/ruby/mini_lisp/lib/mini_lisp/functions.rb:19 #=> untyped
-
-# Classes
 module MiniLisp
-  VERSION: String
-  # Functions: {nil?: Value::Function, list: Value::Function, cons: Value::Function, car: Value::Function, cdr: Value::Function, +: Value::Function, -: Value::Function, ==: Value::Function, !=: Value::Function, !: Value::Function, p: Value::Function, sleep: Value::Function, stack_frames_size: Value::Function, callcc: :callcc, gc: :gc}
+  def self.Fn: () { (*untyped) -> untyped } -> untyped
 
-  def self.Fn: { -> (Value::Cons | Value::Num | singleton(Value::False) | singleton(Value::True)) } -> Value::Function
-  def self.run: (untyped src) -> ((VM | singleton(Value::Nil))?)
-  def env_parent: (untyped call_stack) -> untyped
-  def find_env: (untyped name, untyped call_stack) -> untyped
+  def self.run: (untyped src) -> untyped
+
+  Functions: Hash[untyped, untyped]
+
+  VERSION: String
+
+  module Compiler
+    extend MiniLisp::Lexer
+
+    def self.compile: (untyped ast) -> untyped
+  end
+
+  class Error < StandardError
+  end
+
+  class Evaluator
+    def self.exec: (untyped code_table) -> untyped
+  end
 
   module Lexer
-    def self.tokenize: (String src) -> (Array[Object | Token::Integer | Token::String | Token::Symbol])
+    def self.tokenize: (untyped src) -> untyped
 
     module Token
-      ParenBegin: Object
-      ParenEnd: Object
-      Quote: Object
-      QuasiQuote: Object
-      UnQuote: Object
-      True: Object
       False: Object
 
-      def inspect: -> untyped
-                 | -> untyped
-                 | -> untyped
+      ParenBegin: Object
+
+      ParenEnd: Object
+
+      QuasiQuote: Object
+
+      Quote: Object
+
+      True: Object
+
+      UnQuote: Object
 
       class Integer < Struct[untyped]
-        attr_accessor v(): Integer
+        def self.[]: (*untyped) -> untyped
+
+        def self.inspect: () -> untyped
+
+        def self.keyword_init?: () -> untyped
+
+        def self.members: () -> untyped
+
+        def self.new: (*untyped) -> untyped
+
+        public
+
+        def inspect: () -> untyped
+
+        def v: () -> untyped
+
+        def v=: (untyped _) -> untyped
       end
 
       class String < Struct[untyped]
-        attr_accessor v(): String?
+        def self.[]: (*untyped) -> untyped
+
+        def self.inspect: () -> untyped
+
+        def self.keyword_init?: () -> untyped
+
+        def self.members: () -> untyped
+
+        def self.new: (*untyped) -> untyped
+
+        public
+
+        def inspect: () -> untyped
+
+        def v: () -> untyped
+
+        def v=: (untyped _) -> untyped
       end
 
       class Symbol < Struct[untyped]
-        attr_accessor v(): Array[String] | String
+        def self.[]: (*untyped) -> untyped
+
+        def self.inspect: () -> untyped
+
+        def self.keyword_init?: () -> untyped
+
+        def self.members: () -> untyped
+
+        def self.new: (*untyped) -> untyped
+
+        public
+
+        def inspect: () -> untyped
+
+        def v: () -> untyped
+
+        def v=: (untyped _) -> untyped
       end
     end
   end
 
   module Parser
-    def self.parse: (Array[Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object] tokens) -> (Array[(Array[(Array[untyped] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?])
-    def self.format: ((Array[(Array[(Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)? parsed, ?Integer depth) -> String
+    extend MiniLisp::Lexer
+
+    def self.format: (untyped parsed, ?untyped depth) -> untyped
+
+    def self.parse: (untyped tokens) -> untyped
   end
 
-  module Compiler
-    def self.compile: (Array[(Array[(Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] ast) -> Array[untyped]
-    def self.compile_r: ((Array[(Array[(Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)? ast, Array[untyped] code_table, Hash[untyped, untyped] macro_table) -> [Array[String], Array[untyped], Hash[untyped, untyped]]
-    def self.compile_quote: ((Array[(Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)?] | Lexer::Token::Integer | Lexer::Token::String | Lexer::Token::Symbol | Object)? ast, Array[untyped] code_table, Hash[untyped, untyped] macro_table, bool quasiquote) -> [Array[String], Array[untyped], Hash[untyped, untyped]]
-  end
+  class StackFrame
+    alias self.[] self.new
 
-  module Value
-    def inspect: -> String
-               | -> untyped
-               | -> untyped
-               | -> untyped
-               | -> untyped
-               | -> untyped
-               | -> untyped
-    def to_ruby: -> untyped
-               | -> untyped
-               | -> untyped
-    def to_ast: -> Array[untyped]
-              | -> Lexer::Token::Integer
-              | -> Lexer::Token::String
-              | -> Lexer::Token::Symbol
-    def call: (untyped args, untyped vm) -> untyped
+    public
 
-    class Nil
-      def self.inspect: -> untyped
-      def self.to_ruby: -> Array[untyped]
-      def self.to_ast: -> Array[untyped]
-    end
+    def call_parent_num: () -> untyped
 
-    class True
-      def self.inspect: -> untyped
-      def self.to_ruby: -> true
-      def self.to_ast: -> Object
-    end
+    def code_table_num: () -> untyped
 
-    class False
-      def self.inspect: -> untyped
-      def self.to_ruby: -> false
-      def self.to_ast: -> Object
-    end
+    def env: () -> untyped
 
-    class Num < Struct[untyped]
-      attr_accessor v(): Integer
-    end
+    def env_parent: (untyped call_stack) -> untyped
 
-    class String < Struct[untyped]
-      attr_accessor v(): String?
-    end
+    def env_parent_num: () -> untyped
 
-    class Symbol < Struct[untyped]
-      attr_accessor v(): String?
-    end
+    def find_env: (untyped name, untyped call_stack) -> untyped
 
-    class Function < Struct[untyped]
-      attr_accessor proc(): ^-> (Cons | Num | singleton(False) | singleton(True))
-    end
+    def line_num: () -> untyped
 
-    class Cons < Struct[untyped]
-      attr_accessor head(): untyped
-      attr_accessor rest(): untyped
-    end
+    def stack: () -> untyped
 
-    class Closure < Struct[untyped]
-      attr_accessor function_num(): Integer
-      attr_accessor args(): Array[Symbol]
-      attr_accessor stack_frame_num(): Integer?
-    end
+    private
 
-    class Continuation < Struct[untyped]
-      attr_accessor vm(): VM
-    end
+    def initialize: (untyped stack, untyped env, untyped line_num, untyped call_parent_num, untyped env_parent_num, untyped code_table_num) -> void
   end
 
   class VM
-    attr_accessor stack_frame_num: Integer?
-    attr_accessor stack_frames: Hash[Integer, StackFrame]
-    def initialize: (Integer? stack_frame_num, Hash[Integer, StackFrame] stack_frames) -> void
     alias self.[] self.new
-    def change_stack_frame_num: (Integer? n) -> VM
-    def current_stack_frame: -> StackFrame
-    def current_stack_frame_call_parent: -> StackFrame
-    def current_stack_frame_env_parent: -> StackFrame
-    def current_stack_frame_finish?: (Array[untyped] code_table) -> bool
-    def current_stack_frame_find_env: (Symbol name) -> untyped
-    def current_stack_frame_update_env: (Symbol name, singleton(Value::Nil)? value) -> VM
-    def current_stack_frame_stack_push: ((Value::Closure | Value::Num | Value::String | Value::Symbol | singleton(Value::False) | singleton(Value::Nil) | singleton(Value::True))? value) -> VM
-    def current_stack_frame_stack_pop: -> [VM, singleton(Value::Nil)?]
-    def current_stack_frame_line_num_add: (Integer n) -> VM
-    def available_stack_frame_num: -> nil
-    def insert_stack_frame: (nil n, StackFrame stack_frame) -> VM
-    def gc: -> VM
+
+    public
+
+    def available_stack_frame_num: () -> untyped
+
+    def change_stack_frame_num: (untyped n) -> untyped
+
+    def current_stack_frame: () -> untyped
+
+    def current_stack_frame_call_parent: () -> untyped
+
+    def current_stack_frame_env_parent: () -> untyped
+
+    def current_stack_frame_find_env: (untyped name) -> untyped
+
+    def current_stack_frame_finish?: (untyped code_table) -> untyped
+
+    def current_stack_frame_line_num_add: (untyped n) -> untyped
+
+    def current_stack_frame_stack_pop: () -> untyped
+
+    def current_stack_frame_stack_push: (untyped value) -> untyped
+
+    def current_stack_frame_update_env: (untyped name, untyped value) -> untyped
+
+    def gc: () -> untyped
+
+    def insert_stack_frame: (untyped n, untyped stack_frame) -> untyped
+
+    def stack_frame_num: () -> untyped
+
+    def stack_frames: () -> untyped
+
+    private
+
+    def initialize: (untyped stack_frame_num, untyped stack_frames) -> void
   end
 
-  class StackFrame < Struct[untyped]
-    attr_accessor stack(): Array[singleton(Value::Nil)]
-    attr_accessor env(): Hash[:! | :!= | :+ | :- | :== | :callcc | :car | :cdr | :cons | :gc | :list | :nil? | :p | :sleep | :stack_frames_size, :callcc | :gc | Value::Continuation | Value::Function]
-    attr_accessor line_num(): Integer
-    attr_accessor call_parent_num(): Integer?
-    attr_accessor env_parent_num(): nil
-    attr_accessor code_table_num(): Integer
-  end
+  module Value
+    class Closure < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
 
-  class Evaluator
-    def self.exec: (Array[untyped] code_table) -> ((VM | singleton(Value::Nil))?)
-    def self.exec_send: (VM vm, Array[untyped] code_table, Integer argc) -> VM
-    def self.print_code_table: (VM vm, Array[untyped] code_table) -> nil
-    def self.print_stack_frame: (VM vm, Array[untyped] code_table) -> nil
-  end
+      def self.inspect: () -> untyped
 
-  class Error < StandardError
-  end
-end
+      def self.keyword_init?: () -> untyped
 
-class AnonymousStruct_generated_12 < Struct[untyped]
-  attr_accessor args(): untyped
-  attr_accessor vm(): untyped
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def args: () -> untyped
+
+      def args=: (untyped _) -> untyped
+
+      def function_num: () -> untyped
+
+      def function_num=: (untyped _) -> untyped
+
+      def inspect: () -> untyped
+
+      def stack_frame_num: () -> untyped
+
+      def stack_frame_num=: (untyped _) -> untyped
+    end
+
+    class Cons < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def head: () -> untyped
+
+      def head=: (untyped _) -> untyped
+
+      def inspect: () -> untyped
+
+      def rest: () -> untyped
+
+      def rest=: (untyped _) -> untyped
+
+      def to_ast: () -> untyped
+    end
+
+    class Continuation < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def inspect: () -> untyped
+
+      def vm: () -> untyped
+
+      def vm=: (untyped _) -> untyped
+    end
+
+    class False
+      def self.inspect: () -> untyped
+
+      def self.to_ast: () -> untyped
+
+      def self.to_ruby: () -> untyped
+    end
+
+    class Function < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def call: (untyped args, untyped vm) -> untyped
+
+      def inspect: () -> untyped
+
+      def proc: () -> untyped
+
+      def proc=: (untyped _) -> untyped
+    end
+
+    class Nil
+      def self.inspect: () -> untyped
+
+      def self.to_ast: () -> untyped
+
+      def self.to_ruby: () -> untyped
+    end
+
+    class Num < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def inspect: () -> untyped
+
+      def to_ast: () -> untyped
+
+      def to_ruby: () -> untyped
+
+      def v: () -> untyped
+
+      def v=: (untyped _) -> untyped
+    end
+
+    class String < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def inspect: () -> untyped
+
+      def to_ast: () -> untyped
+
+      def to_ruby: () -> untyped
+
+      def v: () -> untyped
+
+      def v=: (untyped _) -> untyped
+    end
+
+    class Symbol < Struct[untyped]
+      def self.[]: (*untyped) -> untyped
+
+      def self.inspect: () -> untyped
+
+      def self.keyword_init?: () -> untyped
+
+      def self.members: () -> untyped
+
+      def self.new: (*untyped) -> untyped
+
+      public
+
+      def inspect: () -> untyped
+
+      def to_ast: () -> untyped
+
+      def to_ruby: () -> untyped
+
+      def v: () -> untyped
+
+      def v=: (untyped _) -> untyped
+    end
+
+    class True
+      def self.inspect: () -> untyped
+
+      def self.to_ast: () -> untyped
+
+      def self.to_ruby: () -> untyped
+    end
+  end
 end
