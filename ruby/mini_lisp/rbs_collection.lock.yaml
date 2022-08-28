@@ -62,10 +62,6 @@ gems:
     revision: 5442918ecb9bbecca2a3a357477f24af42047af4
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
-- name: steep
-  version: 1.1.1
-  source:
-    type: rubygems
 - name: monitor
   version: '0'
   source:

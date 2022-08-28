@@ -13,5 +13,9 @@ gems:
   # It's unnecessary if you don't use rbs as a library.
   - name: rbs
     ignore: true
+  - name: typeprof
+    ignore: true
+  - name: steep
+    ignore: true
   - name: mini_lisp
     ignore: true
