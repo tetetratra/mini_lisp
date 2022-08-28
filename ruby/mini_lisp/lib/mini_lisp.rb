@@ -13,6 +13,10 @@ module MiniLisp
   class Error < StandardError; end
 
   def self.run(src)
+    $debug = !!ARGV.delete('-d')
+    $gc_every_time = !!ARGV.delete('-g')
+    $mini = !!ARGV.delete('-m')
+
     stdlib = $mini ? '' : File.open(File.expand_path('../mlisp/standard_library.mlisp', __dir__)).read
     tokens = Lexer.tokenize(stdlib + src)
     puts tokens.map(&:inspect).join(' ') if $debug
@@ -25,4 +29,15 @@ module MiniLisp
 
     Evaluator.exec(code_table)
   end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  MiniLisp.run <<-LISP
+    (= increment (-> (init)
+      (-> () (= init (+ init 1)))))
+    (= inc (increment 10))
+    (p (inc))
+    (p (inc))
+    (p (inc))
+  LISP
 end

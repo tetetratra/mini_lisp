@@ -1,9 +1,10 @@
 require 'set'
 require 'rainbow/refinement'
-using Rainbow
 
 module MiniLisp
   class Evaluator
+    using Rainbow
+
     class << self
       def exec(code_table)
         init_vm = VM[

@@ -1,13 +1,6 @@
 #! /usr/bin/env ruby -W0
 
-$debug = !!ARGV.delete('-d')
-$gc_every_time = !!ARGV.delete('-g')
-$mini = !!ARGV.delete('-m')
-
 require_relative '../lib/mini_lisp'
 
-ARGV.each do |file_name|
-  puts "\n----- #{file_name} -----" if $debug
-  src = File.open(file_name, &:read)
-  MiniLisp.run(src)
-end
+src = File.open(ARGV[0], &:read)
+MiniLisp.run(src)

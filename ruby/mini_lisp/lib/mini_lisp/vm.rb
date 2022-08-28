@@ -6,16 +6,17 @@ using Rainbow
 
 module MiniLisp
   class VM
-    attr_accessor :stack_frame_num, :stack_frames
+    class << self
+      alias [] new
+    end
+
+    attr_reader :stack_frame_num, :stack_frames
 
     def initialize(stack_frame_num, stack_frames)
       @stack_frame_num = stack_frame_num
       @stack_frames = stack_frames
     end
 
-    class << self
-      alias [] new
-    end
 
     def change_stack_frame_num(n)
       VM[
@@ -179,7 +180,7 @@ module MiniLisp
             end
           in Value::Cons
             # TODO
-            else
+          else
             # do nothing
           end
         end
@@ -194,21 +195,28 @@ module MiniLisp
     end
   end
 
-  StackFrame = Struct.new(
-    :stack,
-    :env,
-    :line_num,
-    :call_parent_num,
-    :env_parent_num,
-    :code_table_num
-  ) do
+  class StackFrame
+    class << self
+      alias [] new
+    end
+
+    attr_reader :stack, :env,:line_num,:call_parent_num,:env_parent_num,:code_table_num
+    def initialize(stack, env,line_num,call_parent_num,env_parent_num,code_table_num)
+      @stack = stack
+      @env = env
+      @line_num = line_num
+      @call_parent_num = call_parent_num
+      @env_parent_num = env_parent_num
+      @code_table_num = code_table_num
+    end
+
     def env_parent(call_stack)
-      call_stack[env_parent_num]
+      call_stack[@env_parent_num]
     end
 
     def find_env(name, call_stack)
-      if env.key?(name)
-        env[name]
+      if @env.key?(name)
+        @env[name]
       elsif env_parent = env_parent(call_stack)
         env_parent.find_env(name, call_stack)
       else
@@ -216,4 +224,26 @@ module MiniLisp
       end
     end
   end
+  # StackFrame = Struct.new(
+  #   :stack,
+  #   :env,
+  #   :line_num,
+  #   :call_parent_num,
+  #   :env_parent_num,
+  #   :code_table_num
+  # ) do
+  #   def env_parent(call_stack)
+  #     call_stack[env_parent_num]
+  #   end
+
+  #   def find_env(name, call_stack)
+  #     if env.key?(name)
+  #       env[name]
+  #     elsif env_parent = env_parent(call_stack)
+  #       env_parent.find_env(name, call_stack)
+  #     else
+  #       raise "variable `#{name}` is not defined"
+  #     end
+  #   end
+  # end
 end
