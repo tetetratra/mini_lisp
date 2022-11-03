@@ -7,7 +7,7 @@ mod vm_exec;
 use std::env;
 use std::fs;
 
-static DEBUG: bool = true;
+static DEBUG: bool = false;
 
 fn main() {
     let filename = env::args().nth(1).unwrap();
